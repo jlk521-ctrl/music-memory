@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Practice Test — Music Memory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+
+  :root{
+    --navy:#122341;
+    --navy-deep:#0a1526;
+    --navy-text:#1d5099;
+    --parchment:#f2efe6;
+    --parchment-dim:#e6e0cf;
+    --orange:#d97e2c;
+    --orange-bright:#f0b83e;
+    --ink:#1c1712;
+    --accent-muted:#8a5a2b;
+    --good:#2f6b4a;
+    --bad:#b3402f;
+    --display:'Fraunces', serif;
+    --body:'Libre Caslon Text', serif;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; color-scheme:light; }
+
+  body{
+    margin:0;
+    background:var(--parchment);
+    color:var(--ink);
+    font-family:var(--body);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  a{ color:inherit; }
+  button{ font-family:var(--body); cursor:pointer; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(240,184,62,0.18), transparent 60%),
+      linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color:var(--parchment);
+    padding:56px 24px 44px;
+    text-align:center;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:repeating-linear-gradient(0deg, transparent 0px, transparent 41px, rgba(241,231,208,0.045) 41px, rgba(241,231,208,0.045) 42px);
+    pointer-events:none;
+  }
+  .hero h1{
+    position:relative; z-index:1;
+    font-family:var(--display); font-weight:600; font-style:italic;
+    font-size:clamp(2rem, 5vw, 3.2rem);
+    margin:0 0 8px; color:var(--parchment);
+  }
+  .hero p{ position:relative; z-index:1; color:rgba(241,231,208,0.78); margin:0; font-size:0.95rem; }
+
+  /* ---------- Layout shell ---------- */
+  main{ max-width:820px; margin:0 auto; padding:36px 20px 60px; }
+
+  .card{
+    background:#fff;
+    border:1px solid rgba(18,35,65,0.12);
+    border-radius:6px;
+    padding:24px;
+    box-shadow:0 14px 30px -18px rgba(0,0,0,0.25);
+    margin-bottom:24px;
+  }
+
+  /* ---------- Level select ---------- */
+  .level-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
+  @media (max-width:640px){ .level-grid{ grid-template-columns:1fr; } }
+
+  .level-card{
+    background:#fff;
+    border:2px solid rgba(18,35,65,0.14);
+    border-radius:6px;
+    padding:22px 18px;
+    text-align:left;
+    transition:border-color 0.15s ease, transform 0.15s ease;
+  }
+  .level-card:hover, .level-card:focus-visible{ border-color:var(--orange); transform:translateY(-3px); }
+  .level-card h2{ font-family:var(--display); font-style:italic; color:var(--navy-text); margin:0 0 8px; font-size:1.3rem; }
+  .level-card p{ font-size:0.9rem; color:#4a3d33; margin:0; }
+
+  /* ---------- Rows (Step 1, Level 1 & 2) ---------- */
+  .row{
+    display:flex; align-items:flex-start; gap:14px;
+    padding:14px 0;
+    border-bottom:1px solid rgba(18,35,65,0.1);
+  }
+  .row:last-child{ border-bottom:none; }
+  .row .icon{ width:30px; height:30px; flex-shrink:0; color:var(--orange); margin-top:2px; }
+  .row .icon svg{ width:100%; height:100%; }
+  .row .num{ font-family:var(--display); font-style:italic; color:var(--orange); min-width:20px; }
+  .row .given{ flex-grow:1; min-width:0; }
+  .row .given .title{ font-style:italic; color:var(--ink); display:block; }
+  .row .given .note{ font-size:0.8rem; color:#8a7a63; display:block; }
+  .row .answers{ display:flex; flex-direction:column; gap:6px; min-width:170px; }
+  .row select, .row input[type=text]{
+    font-family:var(--body); font-size:0.9rem;
+    padding:6px 8px; border:1px solid rgba(18,35,65,0.25); border-radius:4px;
+    background:var(--parchment); color:var(--ink);
+  }
+  .row .listen-slot{
+    min-width:70px; text-align:center; font-family:var(--display); font-style:italic;
+    font-size:1.1rem; color:var(--navy-text); border-bottom:1px dashed var(--orange); padding-bottom:2px;
+  }
+
+  /* ---------- Step 2 / listening ---------- */
+  .listen-panel{ text-align:center; }
+  .track-badge{
+    display:inline-block; font-family:var(--display); font-style:italic; font-size:1.4rem;
+    color:var(--navy); background:var(--parchment-dim); border-radius:50%;
+    width:64px; height:64px; line-height:64px; margin-bottom:14px;
+  }
+  .play-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    background:var(--navy); color:var(--parchment); border:none;
+    padding:14px 28px; border-radius:30px; font-size:1rem; margin-bottom:20px;
+  }
+  .play-btn:hover{ background:var(--navy-deep); }
+  .play-btn svg{ width:18px; height:18px; }
+  .play-btn:disabled{ opacity:0.5; cursor:default; }
+
+  .row-pick-list{ display:flex; flex-direction:column; gap:8px; max-width:520px; margin:0 auto; text-align:left; }
+  .row-pick{
+    display:flex; align-items:center; gap:10px;
+    border:1px solid rgba(18,35,65,0.18); border-radius:4px; padding:10px 14px;
+    background:#fff;
+  }
+  .row-pick:hover{ border-color:var(--orange); }
+  .row-pick input{ accent-color:var(--orange); }
+  .row-pick.taken{ opacity:0.45; }
+
+  .nav-btns{ display:flex; justify-content:center; gap:12px; margin-top:24px; }
+  .btn{ background:var(--navy); color:var(--parchment); border:none; padding:12px 26px; border-radius:30px; font-size:0.95rem; }
+  .btn.secondary{ background:transparent; color:var(--navy); border:1px solid var(--navy); }
+  .btn:disabled{ opacity:0.5; cursor:default; }
+
+  /* ---------- Results ---------- */
+  .result-row{ display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(18,35,65,0.1); }
+  .result-row:last-child{ border-bottom:none; }
+  .result-row .mark{ width:22px; height:22px; flex-shrink:0; }
+  .result-row .mark.correct{ color:var(--good); }
+  .result-row .mark.incorrect{ color:var(--bad); }
+  .result-row .body{ font-size:0.9rem; }
+  .result-row .body .composer{ font-weight:700; color:var(--navy-text); }
+  .result-row .body .given-answer{ color:var(--bad); }
+  .score-banner{ text-align:center; font-family:var(--display); font-style:italic; font-size:1.6rem; color:var(--navy-text); margin-bottom:12px; }
+
+  footer{ background:var(--navy-deep); color:rgba(241,231,208,0.6); text-align:center; padding:24px; font-size:0.85rem; }
+
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>Practice Test</h1>
+  <p>Choose a level below. Selections play in a new random order every time you practice.</p>
+</header>
+
+<main id="app"></main>
+
+<div id="ytHolder" style="position:fixed; top:-9999px; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none;">
+  <div id="ytPlayer"></div>
+</div>
+
+<footer>SAISD &middot; UIL A+ Music Memory &middot; Practice Test</footer>
+
+<script>
+  // Registered immediately, synchronously, BEFORE the YouTube script loads,
+  // so it can never miss the ready callback regardless of how long our
+  // module script (below) takes to load Firebase.
+  window.ytApiReady = false;
+  window.onYouTubeIframeAPIReady = function(){ window.ytApiReady = true; };
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { initializeFirestore, doc, getDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  /* ============================================
+     PASTE YOUR MUSIC MEMORY FIREBASE PROJECT CONFIG HERE
+     (this should be a NEW, separate project from your other tools)
+     ============================================ */
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1buaseorV5ZMvicSbYrzx3tz7_tos_wQ",
+    authDomain: "music-memory-490d4.firebaseapp.com",
+    projectId: "music-memory-490d4",
+    storageBucket: "music-memory-490d4.firebasestorage.app",
+    messagingSenderId: "669104332511",
+    appId: "1:669104332511:web:6e15026013e67de445536a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+
+  /* ============================================
+     RECOMMENDED FIRESTORE RULES (paste into console, Rules tab)
+
+     rules_version = '2';
+     service cloud.firestore {
+       match /databases/{database}/documents {
+         match /pieces_composer/{id} { allow read: if true; allow write: if false; }
+         match /pieces_titles/{id}   { allow read: if true; allow write: if false; }
+         match /pieces_audio/{id}    { allow read: if true; allow write: if false; }
+       }
+     }
+
+     (Temporarily allow write: if true only while running the seeder, then
+     switch back to false.)
+     ============================================ */
+
+  const TOTAL_PIECES = 16;
+  const CLIP_SECONDS = 20;
+
+  // Word banks — safe to hardcode, since a bare list of names/titles reveals
+  // nothing about which piece is which until the student does the matching.
+  const COMPOSER_BANK = ["A. Gabrieli","Bach","Barber","Beach","Beethoven","Berlioz","Haydn","Mozart","Puccini","Saint-Sa\u00ebns","Sousa","Tan Dun","Tchaikovsky","Vaughan Williams","Verdi","Vivaldi"];
+  const MAJORWORK_BANK = ["Aida","Cantata No. 147","Carnival of the Animals","Commando March","Eine kleine Nachtmusik","F\u00fcr Elise","Four Sketches","Ricercar in the 12th Mode","Songs of Travel","Stars and Stripes Forever","Symphonie Fantastique","Symphony 1997","Symphony No. 88","The Four Seasons","The Nutcracker","Turandot"];
+
+  // Original hint icons (line-art), one per piece id 1-16 — NOT copied from
+  // any published Music Memory materials.
+  const ICONS = {
+    1:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3l8 4v2H4V7z"/><path d="M6 9v9M10 9v9M14 9v9M18 9v9"/><path d="M4 21h16"/></svg>', // Bach - chapel/organ
+    2:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><ellipse cx="12" cy="12" rx="7" ry="4"/><path d="M5 12v5a7 4 0 0014 0v-5"/><path d="M9 9l3-3 3 3"/></svg>', // Barber - drum
+    3:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3c3 4 3 8 0 11-3-3-3-7 0-11z"/><path d="M12 14v7"/></svg>', // Beach - leaf
+    4:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="9" width="18" height="9" rx="1"/><path d="M6 9v9M9 9v9M12 9v9M15 9v9M18 9v9"/></svg>', // Beethoven - piano
+    5:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 21h4v-4h4v-4h4v-4h4"/></svg>', // Berlioz - staircase
+    6:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="10" cy="10" r="6"/><path d="M14.5 14.5L20 20"/></svg>', // Gabrieli - magnifying glass
+    7:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 17V4.5L19 3v12.5"/><circle cx="6.5" cy="17" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/><path d="M3 5l1.5 1.5M3 9l2-1M21 6l-1.5 1"/></svg>', // Haydn - lively note
+    8:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M15 3a7 7 0 100 14 6 6 0 01-4-14z"/><path d="M19 4l.6 1.6L21 6l-1.4.4L19 8l-.6-1.6L17 6l1.4-.4z"/></svg>', // Mozart - night moon+star
+    9:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="16" r="4"/><path d="M3 16h2M19 16h2M12 3v2M6 6l1.5 1.5M18 6l-1.5 1.5"/></svg>', // Puccini - sunrise
+    10: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="2"/><path d="M12 4v4M12 16v4M4 12h4M16 12h4M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M17.7 6.3l-2.8 2.8M9.1 14.9l-2.8 2.8"/></svg>', // Saint-Saens - carousel
+    11: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 3l2.2 5.6L20 9l-4.5 3.7L16.9 19 12 15.8 7.1 19l1.4-6.3L4 9l5.8-.4z"/></svg>', // Sousa - star
+    12: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2v4M4.5 6.5l3 3M2 14h4M4.5 21.5l3-3M12 22v-4M19.5 21.5l-3-3M22 14h-4M19.5 6.5l-3 3"/><circle cx="12" cy="14" r="2.5"/></svg>', // Tan Dun - fireworks
+    13: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2v20M12 2l-4 3M12 2l4 3M12 8l-5 3M12 8l5 3M12 14l-6 4M12 14l6 4"/></svg>', // Tchaikovsky - evergreen/snowflake
+    14: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 19c4-1 6-4 9-4s5 3 9 2"/><circle cx="7" cy="17.5" r="0.6" fill="currentColor"/><circle cx="12" cy="15.5" r="0.6" fill="currentColor"/><circle cx="17" cy="16" r="0.6" fill="currentColor"/></svg>', // Vaughan Williams - footpath
+    15: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 17l7-5v7z"/><path d="M11 12h7l2 2-2 2h-7"/></svg>', // Verdi - fanfare/trumpet
+    16: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 8c2-3 6-2 6 1s-4 3-6 6c-2-3-6-3-6-6s4-4 6-1z"/></svg>' // Vivaldi - blossom
+  };
+
+  const LEVELS = {
+    1: {
+      label: "Level 1",
+      blurb: "Full title given. Fill in the composer from the word bank, then find each piece by ear.",
+      hasStep1: true, showTitle: "full", askComposer: true, askMajorWork: false, typed: false
+    },
+    2: {
+      label: "Level 2",
+      blurb: "Only the selection is given. Fill in the composer AND major work, then find each piece by ear.",
+      hasStep1: true, showTitle: "selection-only", askComposer: true, askMajorWork: true, typed: false
+    },
+    3: {
+      label: "Level 3",
+      blurb: "Composer is given. Listen to each track and type the major work and selection title from memory.",
+      hasStep1: false, showTitle: "none", askComposer: false, askMajorWork: true, typed: true
+    }
+  };
+
+  /* ============================================
+     STATE
+     ============================================ */
+  let state = {
+    level: null,
+    titles: null,       // { id: {majorWork, selectionTitle, note} } — fetched at Step 1 start (levels 1/2 only)
+    composers: null,    // { id: composer } — fetched at Step 1 start (levels 1/2) or lazily per-slot (level 3)
+    step1Answers: {},   // { id: { composer, majorWork } }
+    order: [],          // shuffled piece ids for the listening step
+    listenIndex: 0,
+    listenAssignments: {}, // level 1/2: { rowId: slotIndex } picked by student
+    level3Answers: {},  // level 3: { id: { majorWork, selectionTitle } } typed by student
+    ytReady: false,
+    ytPlayer: null,
+    playTimer: null
+  };
+
+  function shuffledIds(){
+    const ids = Array.from({length: TOTAL_PIECES}, (_, i) => i + 1);
+    for (let i = ids.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+    }
+    return ids;
+  }
+
+  function pickStartTime(startTimes){
+    return startTimes[Math.floor(Math.random() * startTimes.length)];
+  }
+
+  /* ============================================
+     YOUTUBE PLAYER (hidden, official IFrame API)
+     ============================================ */
+  function initYTPlayer(){
+    state.ytPlayer = new YT.Player("ytPlayer", {
+      height: "1", width: "1",
+      playerVars: { controls: 0, disablekb: 1, playsinline: 1 },
+      events: {
+        onReady: () => { state.ytReady = true; },
+        onError: (e) => { state.lastError = ytErrorMessage(e.data); }
+      }
+    });
+  }
+
+  // If YouTube's API already became ready before this module script finished
+  // loading, the flag will already be true — initialize immediately.
+  // Otherwise, take over the callback so we catch it whenever it does fire.
+  if (window.ytApiReady) {
+    initYTPlayer();
+  } else {
+    window.onYouTubeIframeAPIReady = initYTPlayer;
+  }
+
+  function ytErrorMessage(code){
+    const messages = {
+      2: "Invalid video ID.",
+      5: "This video can't play in this player.",
+      100: "Video not found (it may have been removed or made private).",
+      101: "This video's owner doesn't allow it to be played in embedded players.",
+      150: "This video's owner doesn't allow it to be played in embedded players."
+    };
+    return messages[code] || `Playback error (code ${code}).`;
+  }
+
+  function playClip(videoId, startSeconds, onDone, onError){
+    if (!state.ytReady) { setTimeout(() => playClip(videoId, startSeconds, onDone, onError), 300); return; }
+    clearTimeout(state.playTimer);
+    state.lastError = null;
+    state.ytPlayer.loadVideoById({ videoId, startSeconds });
+    // Give the player a moment to report an error (e.g. blocked embedding)
+    // before assuming it's actually playing.
+    setTimeout(() => {
+      if (state.lastError && onError) { onError(state.lastError); return; }
+    }, 1200);
+    state.playTimer = setTimeout(() => {
+      state.ytPlayer.pauseVideo();
+      if (onDone) onDone();
+    }, CLIP_SECONDS * 1000);
+  }
+
+  /* ============================================
+     DATA FETCHES
+     ============================================ */
+  async function fetchAllTitlesAndComposers(){
+    const titles = {}, composers = {};
+    const titleSnap = await getDocs(collection(db, "pieces_titles"));
+    titleSnap.forEach(d => { titles[d.id] = d.data(); });
+    const composerSnap = await getDocs(collection(db, "pieces_composer"));
+    composerSnap.forEach(d => { composers[d.id] = d.data().composer; });
+    return { titles, composers };
+  }
+
+  async function fetchAudio(id){
+    const snap = await getDoc(doc(db, "pieces_audio", String(id)));
+    return snap.data(); // { videoId, startTimes }
+  }
+
+  async function fetchComposerOnly(id){
+    const snap = await getDoc(doc(db, "pieces_composer", String(id)));
+    return snap.data().composer;
+  }
+
+  async function fetchAllTitlesForGrading(){
+    const titles = {};
+    const snap = await getDocs(collection(db, "pieces_titles"));
+    snap.forEach(d => { titles[d.id] = d.data(); });
+    return titles;
+  }
+
+  /* ============================================
+     RENDER — level select
+     ============================================ */
+  const appEl = document.getElementById("app");
+
+  function renderLevelSelect(){
+    appEl.innerHTML = `
+      <div class="level-grid">
+        ${Object.entries(LEVELS).map(([key, lvl]) => `
+          <button class="level-card" data-level="${key}">
+            <h2>${lvl.label}</h2>
+            <p>${lvl.blurb}</p>
+          </button>
+        `).join("")}
+      </div>
+    `;
+    appEl.querySelectorAll(".level-card").forEach(btn => {
+      btn.addEventListener("click", () => startLevel(Number(btn.dataset.level)));
+    });
+  }
+
+  async function startLevel(levelNum){
+    state = { ...state, level: levelNum, step1Answers: {}, listenAssignments: {}, level3Answers: {}, listenIndex: 0 };
+    const cfg = LEVELS[levelNum];
+    appEl.innerHTML = `<div class="card">Loading&hellip;</div>`;
+
+    if (cfg.hasStep1){
+      const { titles, composers } = await fetchAllTitlesAndComposers();
+      state.titles = titles;
+      state.composers = composers;
+      renderStep1(cfg);
+    } else {
+      // Level 3: no titles fetched yet — composer fetched lazily per slot
+      state.order = shuffledIds();
+      renderLevel3Listening(cfg);
+    }
+  }
+
+  /* ============================================
+     RENDER — Step 1 (levels 1 & 2): matching from word banks
+     ============================================ */
+  function renderStep1(cfg){
+    const rows = Array.from({length: TOTAL_PIECES}, (_, i) => i + 1).map(id => {
+      const t = state.titles[id];
+      const givenLine = cfg.showTitle === "full"
+        ? `<span class="title">${t.majorWork}${t.selectionTitle ? ` &mdash; ${t.selectionTitle}` : ""}</span>`
+        : cfg.showTitle === "selection-only"
+          ? (t.selectionTitle
+              ? `<span class="title">${t.selectionTitle}</span>`
+              : `<span class="note">${t.note || "no separate movement"}</span>`)
+          : "";
+      return `
+        <div class="row" data-id="${id}">
+          <span class="icon">${ICONS[id]}</span>
+          <span class="num">${id}.</span>
+          <div class="given">${givenLine}${t.note && cfg.showTitle === "full" ? `<span class="note">${t.note}</span>` : ""}</div>
+          <div class="answers">
+            <select data-field="composer" data-id="${id}">
+              <option value="">Composer\u2026</option>
+              ${COMPOSER_BANK.map(c => `<option value="${c}">${c}</option>`).join("")}
+            </select>
+            ${cfg.askMajorWork ? `
+              <select data-field="majorWork" data-id="${id}">
+                <option value="">Major Work\u2026</option>
+                ${MAJORWORK_BANK.map(w => `<option value="${w}">${w}</option>`).join("")}
+              </select>` : ""}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    appEl.innerHTML = `
+      <div class="card">
+        <p style="margin-top:0;"><strong>Step 1:</strong> Use the word bank${cfg.askMajorWork ? "s" : ""} to fill in ${cfg.askMajorWork ? "the composer and major work" : "the composer"} for each row. You'll listen and put things in order next.</p>
+        ${rows}
+      </div>
+      <div class="nav-btns">
+        <button class="btn" id="toStep2">Continue to Listening &rarr;</button>
+      </div>
+    `;
+
+    document.getElementById("toStep2").addEventListener("click", () => {
+      appEl.querySelectorAll("select").forEach(sel => {
+        const id = sel.dataset.id, field = sel.dataset.field;
+        state.step1Answers[id] = state.step1Answers[id] || {};
+        state.step1Answers[id][field] = sel.value;
+      });
+      state.order = shuffledIds();
+      renderListeningStep(LEVELS[state.level]);
+    });
+  }
+
+  /* ============================================
+     RENDER — Step 2 (levels 1 & 2): sequential listening + row picking
+     ============================================ */
+  async function renderListeningStep(cfg){
+    const slot = state.listenIndex;
+    if (slot >= TOTAL_PIECES) { return renderResults(cfg); }
+
+    const pieceId = state.order[slot];
+    const takenRowIds = new Set(Object.keys(state.listenAssignments));
+
+    appEl.innerHTML = `<div class="card">Loading track ${slot + 1}&hellip;</div>`;
+    let audio;
+    try {
+      audio = await fetchAudio(pieceId);
+    } catch (err) {
+      appEl.innerHTML = `<div class="card">Couldn't load this track's audio info: ${err.message}</div>`;
+      return;
+    }
+
+    appEl.innerHTML = `
+      <div class="card listen-panel">
+        <div class="track-badge">${slot + 1}</div>
+        <p>Track ${slot + 1} of ${TOTAL_PIECES}</p>
+        <button class="play-btn" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z"/></svg>
+          Play 20-second clip
+        </button>
+        <p id="playerStatus" style="font-size:0.8rem;color:#8a7a63;min-height:1.2em;"></p>
+        <p style="font-size:0.85rem;color:#8a7a63;">Which row is this? Tap it below.</p>
+        <div class="row-pick-list">
+          ${Array.from({length: TOTAL_PIECES}, (_, i) => i + 1).map(rid => {
+            const t = state.titles[rid];
+            const label = t.majorWork + (t.selectionTitle ? ` \u2014 ${t.selectionTitle}` : "");
+            const taken = takenRowIds.has(String(rid));
+            return `
+              <label class="row-pick ${taken ? "taken" : ""}">
+                <input type="radio" name="rowpick" value="${rid}" ${taken ? "disabled" : ""}>
+                ${rid}. ${label}
+              </label>
+            `;
+          }).join("")}
+        </div>
+      </div>
+      <div class="nav-btns">
+        <button class="btn" id="confirmPick" disabled>Confirm &amp; Next Track</button>
+      </div>
+    `;
+
+    document.getElementById("playBtn").addEventListener("click", (e) => {
+      // No await here on purpose — audio was already fetched above, so this
+      // call happens synchronously inside the click handler (required for
+      // mobile Safari to allow audio playback).
+      e.target.disabled = true;
+      const statusEl = document.getElementById("playerStatus");
+      statusEl.textContent = "Loading\u2026";
+      const start = pickStartTime(audio.startTimes && audio.startTimes.length ? audio.startTimes : [15]);
+      playClip(audio.videoId, start,
+        () => { e.target.disabled = false; statusEl.textContent = ""; },
+        (errMsg) => { e.target.disabled = false; statusEl.textContent = errMsg; }
+      );
+    });
+
+    appEl.querySelectorAll('input[name="rowpick"]').forEach(input => {
+      input.addEventListener("change", () => {
+        document.getElementById("confirmPick").disabled = false;
+      });
+    });
+
+    document.getElementById("confirmPick").addEventListener("click", () => {
+      const picked = appEl.querySelector('input[name="rowpick"]:checked');
+      if (!picked) return;
+      state.listenAssignments[picked.value] = pieceId; // rowId chosen -> actual piece that was playing
+      state.listenIndex += 1;
+      renderListeningStep(cfg);
+    });
+  }
+
+  /* ============================================
+     RENDER — Level 3: composer given, type major work + selection, one track at a time
+     ============================================ */
+  async function renderLevel3Listening(cfg){
+    const slot = state.listenIndex;
+    if (slot >= TOTAL_PIECES) { return renderResults(cfg); }
+
+    const pieceId = state.order[slot];
+    appEl.innerHTML = `<div class="card">Loading track ${slot + 1}&hellip;</div>`;
+
+    const [composer, audio] = await Promise.all([fetchComposerOnly(pieceId), fetchAudio(pieceId)]);
+
+    appEl.innerHTML = `
+      <div class="card listen-panel">
+        <div class="track-badge">${slot + 1}</div>
+        <p>Track ${slot + 1} of ${TOTAL_PIECES}</p>
+        <p style="font-family:var(--display);font-style:italic;color:var(--navy-text);font-size:1.15rem;">Composer: ${composer}</p>
+        <button class="play-btn" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z"/></svg>
+          Play 20-second clip
+        </button>
+        <p id="playerStatus" style="font-size:0.8rem;color:#8a7a63;min-height:1.2em;"></p>
+        <div style="max-width:360px;margin:0 auto;text-align:left;">
+          <label style="display:block;font-size:0.85rem;margin-bottom:4px;">Major Work</label>
+          <input type="text" id="majorWorkInput" style="width:100%;padding:8px;margin-bottom:14px;">
+          <label style="display:block;font-size:0.85rem;margin-bottom:4px;">Selection Title (if any)</label>
+          <input type="text" id="selectionInput" style="width:100%;padding:8px;">
+        </div>
+      </div>
+      <div class="nav-btns">
+        <button class="btn" id="nextTrack">Next Track &rarr;</button>
+      </div>
+    `;
+
+    document.getElementById("playBtn").addEventListener("click", (e) => {
+      e.target.disabled = true;
+      const statusEl = document.getElementById("playerStatus");
+      statusEl.textContent = "Loading\u2026";
+      const start = pickStartTime(audio.startTimes && audio.startTimes.length ? audio.startTimes : [15]);
+      playClip(audio.videoId, start,
+        () => { e.target.disabled = false; statusEl.textContent = ""; },
+        (errMsg) => { e.target.disabled = false; statusEl.textContent = errMsg; }
+      );
+    });
+
+    document.getElementById("nextTrack").addEventListener("click", () => {
+      state.level3Answers[pieceId] = {
+        majorWork: document.getElementById("majorWorkInput").value.trim(),
+        selectionTitle: document.getElementById("selectionInput").value.trim()
+      };
+      state.listenIndex += 1;
+      renderLevel3Listening(cfg);
+    });
+  }
+
+  /* ============================================
+     RESULTS
+     ============================================ */
+  function norm(s){ return (s || "").trim().toLowerCase(); }
+
+  async function renderResults(cfg){
+    if (!cfg.hasStep1){
+      // Level 3 — fetch correct titles now, for grading only
+      const titles = await fetchAllTitlesForGrading();
+      let correct = 0, total = TOTAL_PIECES * 2;
+      const rowsHtml = state.order.map(id => {
+        const guess = state.level3Answers[id] || { majorWork: "", selectionTitle: "" };
+        const truth = titles[id];
+        const mwOk = norm(guess.majorWork) === norm(truth.majorWork);
+        const stOk = norm(guess.selectionTitle) === norm(truth.selectionTitle || truth.majorWork);
+        if (mwOk) correct++;
+        if (stOk) correct++;
+        return `
+          <div class="result-row">
+            <span class="mark ${mwOk && stOk ? "correct" : "incorrect"}">${mwOk && stOk ? "&#10003;" : "&#10007;"}</span>
+            <div class="body">
+              <strong>${truth.majorWork}${truth.selectionTitle ? ` &mdash; ${truth.selectionTitle}` : ""}</strong><br>
+              Your answer: ${guess.majorWork || "(blank)"}${guess.selectionTitle ? ` &mdash; ${guess.selectionTitle}` : ""}
+            </div>
+          </div>
+        `;
+      }).join("");
+      appEl.innerHTML = `
+        <div class="card">
+          <div class="score-banner">${correct} / ${total}</div>
+          ${rowsHtml}
+        </div>
+        <div class="nav-btns"><button class="btn" id="restart">Practice Again</button></div>
+      `;
+    } else {
+      // Levels 1 & 2 — grade composer/major-work picks + listening placements
+      let correct = 0, total = TOTAL_PIECES * (cfg.askMajorWork ? 3 : 2);
+      const rowsHtml = Array.from({length: TOTAL_PIECES}, (_, i) => i + 1).map(id => {
+        const t = state.titles[id];
+        const truthComposer = state.composers[id];
+        const given = state.step1Answers[id] || {};
+        const composerOk = norm(given.composer) === norm(truthComposer);
+        const majorWorkOk = !cfg.askMajorWork || norm(given.majorWork) === norm(t.majorWork);
+        const assignedPieceId = state.listenAssignments[id];
+        const listenOk = assignedPieceId === id;
+        if (composerOk) correct++;
+        if (cfg.askMajorWork && majorWorkOk) correct++;
+        if (listenOk) correct++;
+        const allOk = composerOk && majorWorkOk && listenOk;
+        return `
+          <div class="result-row">
+            <span class="mark ${allOk ? "correct" : "incorrect"}">${allOk ? "&#10003;" : "&#10007;"}</span>
+            <div class="body">
+              <span class="composer">${truthComposer}</span> &mdash; ${t.majorWork}${t.selectionTitle ? ` (${t.selectionTitle})` : ""}<br>
+              ${!composerOk ? `<span class="given-answer">Your composer: ${given.composer || "(blank)"}</span><br>` : ""}
+              ${cfg.askMajorWork && !majorWorkOk ? `<span class="given-answer">Your major work: ${given.majorWork || "(blank)"}</span><br>` : ""}
+              ${!listenOk ? `<span class="given-answer">Listening: not correctly placed</span>` : ""}
+            </div>
+          </div>
+        `;
+      }).join("");
+      appEl.innerHTML = `
+        <div class="card">
+          <div class="score-banner">${correct} / ${total}</div>
+          ${rowsHtml}
+        </div>
+        <div class="nav-btns"><button class="btn" id="restart">Practice Again</button></div>
+      `;
+    }
+
+    document.getElementById("restart").addEventListener("click", renderLevelSelect);
+  }
+
+  renderLevelSelect();
+</script>
+
+</body>
+</html>
