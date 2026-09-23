@@ -236,6 +236,10 @@
   // nothing about which piece is which until the student does the matching.
   const COMPOSER_BANK = ["A. Gabrieli","Bach","Barber","Beach","Beethoven","Berlioz","Haydn","Mozart","Puccini","Saint-Sa\u00ebns","Sousa","Tan Dun","Tchaikovsky","Vaughan Williams","Verdi","Vivaldi"];
   const MAJORWORK_BANK = ["Aida","Cantata No. 147","Carnival of the Animals","Commando March","Eine kleine Nachtmusik","F\u00fcr Elise","Four Sketches","Ricercar in the 12th Mode","Songs of Travel","Stars and Stripes Forever","Symphonie Fantastique","Symphony 1997","Symphony No. 88","The Four Seasons","The Nutcracker","Turandot"];
+  // For pieces with no separate movement, the "selection" is just the major
+  // work itself — included here so the word bank always has 16 distinct,
+  // identifiable options.
+  const SELECTION_BANK = ["Commando March","Finale","F\u00fcr Elise","In Autumn","Jesu, Joy of Man\u2019s Desiring","Jubilation","March to the Scaffold","Movement 1","Movement 4","Nessun Dorma","Overture","Ricercar in the 12th Mode","Spring, Movement 1","Stars and Stripes Forever","The Vagabond","Triumphal March"];
 
   // Original hint icons (line-art), one per piece id 1-16 — NOT copied from
   // any published Music Memory materials.
@@ -266,8 +270,8 @@
     },
     2: {
       label: "Level 2",
-      blurb: "Only the selection is given. Fill in the composer AND major work, then find each piece by ear.",
-      hasStep1: true, showTitle: "selection-only", askComposer: true, askMajorWork: true, typed: false
+      blurb: "Only the major work is given. Fill in the composer AND selection title, then find each piece by ear.",
+      hasStep1: true, showTitle: "major-only", askComposer: true, askSelectionTitle: true, typed: false
     },
     3: {
       label: "Level 3",
@@ -431,10 +435,8 @@
       const t = state.titles[id];
       const givenLine = cfg.showTitle === "full"
         ? `<span class="title">${t.majorWork}${t.selectionTitle ? ` &mdash; ${t.selectionTitle}` : ""}</span>`
-        : cfg.showTitle === "selection-only"
-          ? (t.selectionTitle
-              ? `<span class="title">${t.selectionTitle}</span>`
-              : `<span class="note">${t.note || "no separate movement"}</span>`)
+        : cfg.showTitle === "major-only"
+          ? `<span class="title">${t.majorWork}</span>`
           : "";
       return `
         <div class="row" data-id="${id}">
@@ -446,10 +448,10 @@
               <option value="">Composer\u2026</option>
               ${COMPOSER_BANK.map(c => `<option value="${c}">${c}</option>`).join("")}
             </select>
-            ${cfg.askMajorWork ? `
-              <select data-field="majorWork" data-id="${id}">
-                <option value="">Major Work\u2026</option>
-                ${MAJORWORK_BANK.map(w => `<option value="${w}">${w}</option>`).join("")}
+            ${cfg.askSelectionTitle ? `
+              <select data-field="selectionTitle" data-id="${id}">
+                <option value="">Selection Title\u2026</option>
+                ${SELECTION_BANK.map(w => `<option value="${w}">${w}</option>`).join("")}
               </select>` : ""}
           </div>
         </div>
@@ -458,7 +460,7 @@
 
     appEl.innerHTML = `
       <div class="card">
-        <p style="margin-top:0;"><strong>Step 1:</strong> Use the word bank${cfg.askMajorWork ? "s" : ""} to fill in ${cfg.askMajorWork ? "the composer and major work" : "the composer"} for each row. You'll listen and put things in order next.</p>
+        <p style="margin-top:0;"><strong>Step 1:</strong> Use the word bank${cfg.askSelectionTitle ? "s" : ""} to fill in ${cfg.askSelectionTitle ? "the composer and selection title" : "the composer"} for each row. You'll listen and put things in order next.</p>
         ${rows}
       </div>
       <div class="nav-btns">
@@ -644,27 +646,28 @@
         <div class="nav-btns"><button class="btn" id="restart">Practice Again</button></div>
       `;
     } else {
-      // Levels 1 & 2 — grade composer/major-work picks + listening placements
-      let correct = 0, total = TOTAL_PIECES * (cfg.askMajorWork ? 3 : 2);
+      // Levels 1 & 2 — grade composer/selection-title picks + listening placements
+      let correct = 0, total = TOTAL_PIECES * (cfg.askSelectionTitle ? 3 : 2);
       const rowsHtml = Array.from({length: TOTAL_PIECES}, (_, i) => i + 1).map(id => {
         const t = state.titles[id];
         const truthComposer = state.composers[id];
+        const truthSelection = t.selectionTitle || t.majorWork;
         const given = state.step1Answers[id] || {};
         const composerOk = norm(given.composer) === norm(truthComposer);
-        const majorWorkOk = !cfg.askMajorWork || norm(given.majorWork) === norm(t.majorWork);
+        const selectionOk = !cfg.askSelectionTitle || norm(given.selectionTitle) === norm(truthSelection);
         const assignedPieceId = state.listenAssignments[id];
         const listenOk = assignedPieceId === id;
         if (composerOk) correct++;
-        if (cfg.askMajorWork && majorWorkOk) correct++;
+        if (cfg.askSelectionTitle && selectionOk) correct++;
         if (listenOk) correct++;
-        const allOk = composerOk && majorWorkOk && listenOk;
+        const allOk = composerOk && selectionOk && listenOk;
         return `
           <div class="result-row">
             <span class="mark ${allOk ? "correct" : "incorrect"}">${allOk ? "&#10003;" : "&#10007;"}</span>
             <div class="body">
               <span class="composer">${truthComposer}</span> &mdash; ${t.majorWork}${t.selectionTitle ? ` (${t.selectionTitle})` : ""}<br>
               ${!composerOk ? `<span class="given-answer">Your composer: ${given.composer || "(blank)"}</span><br>` : ""}
-              ${cfg.askMajorWork && !majorWorkOk ? `<span class="given-answer">Your major work: ${given.majorWork || "(blank)"}</span><br>` : ""}
+              ${cfg.askSelectionTitle && !selectionOk ? `<span class="given-answer">Your selection title: ${given.selectionTitle || "(blank)"}</span><br>` : ""}
               ${!listenOk ? `<span class="given-answer">Listening: not correctly placed</span>` : ""}
             </div>
           </div>
