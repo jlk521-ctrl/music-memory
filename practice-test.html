@@ -306,8 +306,10 @@
     return ids;
   }
 
-  function pickStartTime(startTimes){
-    return startTimes[Math.floor(Math.random() * startTimes.length)];
+  function pickStartTime(musicStart, musicEnd){
+    const latestPossibleStart = Math.max(musicStart, musicEnd - CLIP_SECONDS);
+    if (latestPossibleStart <= musicStart) return musicStart;
+    return musicStart + Math.random() * (latestPossibleStart - musicStart);
   }
 
   /* ============================================
@@ -374,7 +376,7 @@
 
   async function fetchAudio(id){
     const snap = await getDoc(doc(db, "pieces_audio", String(id)));
-    return snap.data(); // { videoId, startTimes }
+    return snap.data(); // { videoId, musicStart, musicEnd }
   }
 
   async function fetchComposerOnly(id){
@@ -534,7 +536,7 @@
       e.target.disabled = true;
       const statusEl = document.getElementById("playerStatus");
       statusEl.textContent = "Loading\u2026";
-      const start = pickStartTime(audio.startTimes && audio.startTimes.length ? audio.startTimes : [15]);
+      const start = pickStartTime(audio.musicStart || 0, audio.musicEnd || CLIP_SECONDS);
       playClip(audio.videoId, start,
         () => { e.target.disabled = false; statusEl.textContent = ""; },
         (errMsg) => { e.target.disabled = false; statusEl.textContent = errMsg; }
@@ -594,7 +596,7 @@
       e.target.disabled = true;
       const statusEl = document.getElementById("playerStatus");
       statusEl.textContent = "Loading\u2026";
-      const start = pickStartTime(audio.startTimes && audio.startTimes.length ? audio.startTimes : [15]);
+      const start = pickStartTime(audio.musicStart || 0, audio.musicEnd || CLIP_SECONDS);
       playClip(audio.videoId, start,
         () => { e.target.disabled = false; statusEl.textContent = ""; },
         (errMsg) => { e.target.disabled = false; statusEl.textContent = errMsg; }
