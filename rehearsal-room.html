@@ -239,7 +239,7 @@
   const app = initializeApp(firebaseConfig);
   const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
 
-  const TOTAL_PIECES = 16;
+  const TOTAL_PIECES = 10;
   const CLIP_SECONDS = 20;
   const REVEAL_DELAY_MS = 10000;   // reveal starts 10s after first Play
   const TICK_MS = 1000;            // one new letter (across all fields combined) per tick
@@ -408,8 +408,7 @@
       submitted: false,
       tickInterval: null,
       watcherInterval: null,
-      revealOrder: [],       // shuffled {field, index} pool, built below (Unofficial only)
-      revealedCount: 0       // how many of revealOrder are currently shown
+      ticks: 0               // shared reveal-tick count, applied to all fields simultaneously
     };
 
     const fieldLabels = { composer: "Composer", majorWork: "Major Work", selectionTitle: "Selection Title" };
@@ -420,20 +419,6 @@
     const fields = (run.mode === "unofficial" && truth.selectionTitle === "")
       ? ["composer", "majorWork"]
       : ["composer", "majorWork", "selectionTitle"];
-
-    if (run.mode === "unofficial") {
-      fields.forEach(f => {
-        truth[f].split("").forEach((ch, i) => {
-          if (ch !== " ") track.revealOrder.push({ field: f, index: i });
-        });
-      });
-      // Fisher-Yates shuffle — the order letters get revealed in is random,
-      // not left-to-right, so it doesn't just slowly spell the word.
-      for (let i = track.revealOrder.length - 1; i > 0; i--){
-        const j = Math.floor(Math.random() * (i + 1));
-        [track.revealOrder[i], track.revealOrder[j]] = [track.revealOrder[j], track.revealOrder[i]];
-      }
-    }
 
     const trackMaxScore = run.mode === "official" ? Math.ceil(OFFICIAL_POINTS_PER_FIELD * 3) : BASE_TRACK_SCORE;
 
@@ -500,23 +485,27 @@
     const answer = track.truth[field];
     const boxesEl = document.getElementById(`boxes-${field}`);
     if (!boxesEl) return;
-    const revealedIndexes = new Set(
-      track.revealOrder.slice(0, track.revealedCount).filter(r => r.field === field).map(r => r.index)
-    );
+    const revealed = Math.min(track.ticks, answer.length);
     boxesEl.innerHTML = answer.split("").map((ch, i) => {
       if (ch === " ") return `<span class="letter-cell space"></span>`;
-      const shown = revealedIndexes.has(i) ? ch : "";
+      const shown = i < revealed ? ch : "";
       return `<span class="letter-cell">${shown}</span>`;
     }).join("");
   }
 
-  function computeRevealedCount(){
-    if (!track || track.revealOrder.length === 0) return 0;
+  function computeTicks(){
+    if (!track) return 0;
     const fromFirstPlay = track.firstPlayActiveMs >= REVEAL_DELAY_MS
       ? Math.floor((track.firstPlayActiveMs - REVEAL_DELAY_MS) / TICK_MS) + 1
       : 0;
     const fromReplays = Math.floor(track.replayActiveMs / TICK_MS);
-    return Math.min(fromFirstPlay + fromReplays, track.revealOrder.length);
+    return fromFirstPlay + fromReplays;
+  }
+
+  function revealedTotalForScoring(fields){
+    let total = 0;
+    fields.forEach(f => { total += Math.min(track.ticks, track.truth[f].length); });
+    return total;
   }
 
   function updateLiveScore(fields){
@@ -526,7 +515,7 @@
       const ceiling = Math.max(0, Math.ceil(OFFICIAL_POINTS_PER_FIELD * fields.length) - Math.max(0, track.replays) * OFFICIAL_REPLAY_COST);
       el.textContent = `Track value: up to ${ceiling} pts`;
     } else {
-      const cost = track.revealedCount * LETTER_HINT_COST;
+      const cost = revealedTotalForScoring(fields) * LETTER_HINT_COST;
       el.textContent = `Track value: ${Math.max(0, BASE_TRACK_SCORE - cost)} pts`;
     }
   }
@@ -552,7 +541,7 @@
         if (track.hasReplayed) { track.replayActiveMs += delta; }
         else { track.firstPlayActiveMs += delta; }
       }
-      track.revealedCount = computeRevealedCount();
+      track.ticks = computeTicks();
       fields.forEach(f => renderBoxes(f));
       updateLiveScore(fields);
     }, 250);
@@ -586,7 +575,7 @@
       return { guesses, correct: allCorrect, fieldCorrect, trackScore, revealedTotal: 0, replays: track.replays };
     } else {
       const allCorrect = fields.every(f => norm(guesses[f]) === norm(track.truth[f]));
-      const revealedTotal = track.revealedCount;
+      const revealedTotal = revealedTotalForScoring(fields);
       const cost = revealedTotal * LETTER_HINT_COST;
       const trackScore = allCorrect ? Math.max(0, BASE_TRACK_SCORE - cost) : 0;
       return { guesses, correct: allCorrect, trackScore, revealedTotal, replays: track.replays };
