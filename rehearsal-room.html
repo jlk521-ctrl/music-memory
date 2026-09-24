@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>The Rehearsal Room — Music Memory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+
+  :root{
+    --navy:#122341;
+    --navy-deep:#0a1526;
+    --navy-text:#1d5099;
+    --parchment:#f2efe6;
+    --parchment-dim:#e6e0cf;
+    --orange:#d97e2c;
+    --orange-bright:#f0b83e;
+    --ink:#1c1712;
+    --accent-muted:#8a5a2b;
+    --good:#2f6b4a;
+    --bad:#b3402f;
+    --display:'Fraunces', serif;
+    --body:'Libre Caslon Text', serif;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; color-scheme:light; }
+
+  body{
+    margin:0;
+    background:var(--parchment);
+    color:var(--ink);
+    font-family:var(--body);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  a{ color:inherit; }
+  button{ font-family:var(--body); cursor:pointer; }
+  input[type=text]{ font-family:var(--body); }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  .hero{
+    position:relative;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(240,184,62,0.18), transparent 60%),
+      linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color:var(--parchment);
+    padding:56px 24px 44px;
+    text-align:center;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:repeating-linear-gradient(0deg, transparent 0px, transparent 41px, rgba(241,231,208,0.045) 41px, rgba(241,231,208,0.045) 42px);
+    pointer-events:none;
+  }
+  .hero h1{
+    position:relative; z-index:1;
+    font-family:var(--display); font-weight:600; font-style:italic;
+    font-size:clamp(2rem, 5vw, 3.2rem);
+    margin:0 0 8px; color:var(--parchment);
+  }
+  .hero p{ position:relative; z-index:1; color:rgba(241,231,208,0.78); margin:0; font-size:0.95rem; }
+  .hero .premium{ color:#ff6b5e; font-weight:700; margin-top:8px; }
+
+  main{ max-width:820px; margin:0 auto; padding:36px 20px 60px; }
+
+  .card{
+    background:#fff;
+    border:1px solid rgba(18,35,65,0.12);
+    border-radius:6px;
+    padding:24px;
+    box-shadow:0 14px 30px -18px rgba(0,0,0,0.25);
+    margin-bottom:24px;
+  }
+
+  /* ---------- Mode select ---------- */
+  .mode-toggle{
+    display:flex; gap:12px; justify-content:center; margin-bottom:24px;
+  }
+  .mode-btn{
+    flex:1; max-width:280px;
+    background:#fff; border:2px solid rgba(18,35,65,0.14); border-radius:6px;
+    padding:20px 16px; text-align:left;
+    transition:border-color 0.15s ease, transform 0.15s ease;
+  }
+  .mode-btn.active{ border-color:var(--orange); background:var(--parchment-dim); }
+  .mode-btn h2{ font-family:var(--display); font-style:italic; color:var(--navy-text); margin:0 0 6px; font-size:1.15rem; }
+  .mode-btn p{ margin:0; font-size:0.85rem; color:#4a3d33; }
+
+  .btn{ background:var(--navy); color:var(--parchment); border:none; padding:12px 26px; border-radius:30px; font-size:0.95rem; }
+  .btn.secondary{ background:transparent; color:var(--navy); border:1px solid var(--navy); }
+  .btn:disabled{ opacity:0.5; cursor:default; }
+  .nav-btns{ display:flex; justify-content:center; gap:12px; margin-top:24px; }
+
+  /* ---------- Track screen ---------- */
+  .track-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  .track-badge{ font-family:var(--display); font-style:italic; color:var(--navy); font-size:1.2rem; }
+  .score-live{ font-family:var(--display); font-style:italic; color:var(--orange); font-size:1.1rem; }
+
+  .play-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    background:var(--navy); color:var(--parchment); border:none;
+    padding:12px 24px; border-radius:30px; font-size:0.95rem; margin-bottom:8px;
+  }
+  .play-btn:hover{ background:var(--navy-deep); }
+  .play-btn svg{ width:16px; height:16px; }
+  .play-btn:disabled{ opacity:0.5; cursor:default; }
+  .replay-note{ font-size:0.78rem; color:#8a7a63; margin:0 0 20px; }
+  .player-status{ font-size:0.8rem; color:#8a7a63; min-height:1.2em; margin:0 0 12px; }
+
+  .field-group{ margin-bottom:22px; }
+  .field-group label{ display:block; font-size:0.82rem; color:var(--accent-muted); font-weight:700; margin-bottom:6px; letter-spacing:0.02em; }
+
+  .letter-boxes{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; }
+  .letter-cell{
+    width:28px; height:34px; border-bottom:2px solid var(--navy);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--display); font-weight:600; font-size:1.1rem; color:var(--navy);
+  }
+  .letter-cell.space{ border-bottom:none; width:16px; }
+
+  .field-group input[type=text]{
+    width:100%; padding:10px 12px; font-size:1rem;
+    border:1px solid rgba(18,35,65,0.25); border-radius:4px; background:var(--parchment); color:var(--ink);
+  }
+
+  /* ---------- Results ---------- */
+  .result-row{ display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(18,35,65,0.1); }
+  .result-row:last-child{ border-bottom:none; }
+  .result-row .mark{ width:22px; height:22px; flex-shrink:0; }
+  .result-row .mark.correct{ color:var(--good); }
+  .result-row .mark.incorrect{ color:var(--bad); }
+  .result-row .body{ font-size:0.9rem; flex-grow:1; }
+  .result-row .points{ font-family:var(--display); font-style:italic; color:var(--orange); font-size:1.05rem; min-width:60px; text-align:right; }
+  .score-banner{ text-align:center; font-family:var(--display); font-style:italic; font-size:1.8rem; color:var(--navy-text); margin-bottom:4px; }
+  .time-banner{ text-align:center; font-size:0.9rem; color:#8a7a63; margin-bottom:20px; }
+  .leaderboard-note{ text-align:center; font-size:0.85rem; color:#8a7a63; font-style:italic; margin-top:16px; }
+
+  footer{ background:var(--navy-deep); color:rgba(241,231,208,0.6); text-align:center; padding:24px; font-size:0.85rem; }
+
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>The Rehearsal Room</h1>
+  <p>Listen, then recall the composer, major work, and selection title from memory.</p>
+  <p class="premium">*YouTube Premium Required</p>
+</header>
+
+<main id="app"></main>
+
+<div id="ytHolder" style="position:fixed; top:-9999px; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none;">
+  <div id="ytPlayer"></div>
+</div>
+
+<footer>SAISD &middot; UIL A+ Music Memory &middot; The Rehearsal Room</footer>
+
+<script>
+  // Registered immediately, synchronously, BEFORE the YouTube script loads,
+  // so it can never miss the ready callback regardless of how long our
+  // module script (below) takes to load Firebase.
+  window.ytApiReady = false;
+  window.onYouTubeIframeAPIReady = function(){ window.ytApiReady = true; };
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { initializeFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  /* ============================================
+     Same Music Memory Firebase project as the Practice Test
+     ============================================ */
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1buaseorV5ZMvicSbYrzx3tz7_tos_wQ",
+    authDomain: "music-memory-490d4.firebaseapp.com",
+    projectId: "music-memory-490d4",
+    storageBucket: "music-memory-490d4.firebasestorage.app",
+    messagingSenderId: "669104332511",
+    appId: "1:669104332511:web:6e15026013e67de445536a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+
+  const TOTAL_PIECES = 16;
+  const CLIP_SECONDS = 20;
+  const REVEAL_DELAY_MS = 10000;   // reveal starts 10s after first Play
+  const TICK_MS = 1000;            // one new letter per name per tick
+  const TYPING_PAUSE_MS = 5000;    // resume 5s after last keystroke
+  const BASE_TRACK_SCORE = 100;
+  const LETTER_HINT_COST = 5;
+  const REPLAY_COST = 10;
+
+  /* ============================================
+     STATE
+     ============================================ */
+  let run = {
+    mode: "unofficial",
+    order: [],
+    index: 0,
+    results: [],   // { pieceId, correct, trackScore, revealedTotal, replays }
+    startedAt: null
+  };
+
+  let track = null; // per-track working state, reset each track
+
+  function shuffledIds(){
+    const ids = Array.from({length: TOTAL_PIECES}, (_, i) => i + 1);
+    for (let i = ids.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+    }
+    return ids;
+  }
+
+  function pickStartTime(musicStart, musicEnd){
+    const latest = Math.max(musicStart, musicEnd - CLIP_SECONDS);
+    if (latest <= musicStart) return musicStart;
+    return musicStart + Math.random() * (latest - musicStart);
+  }
+
+  function norm(s){ return (s || "").trim().toLowerCase().replace(/\s+/g, " "); }
+
+  /* ============================================
+     YOUTUBE PLAYER (hidden, official IFrame API)
+     ============================================ */
+  let ytPlayer = null, ytReady = false, playTimer = null, lastYtError = null;
+
+  function ytErrorMessage(code){
+    const messages = {
+      2: "Invalid video ID.", 5: "This video can't play in this player.",
+      100: "Video not found.", 101: "Embedding disabled by video owner.", 150: "Embedding disabled by video owner."
+    };
+    return messages[code] || `Playback error (code ${code}).`;
+  }
+
+  function initYTPlayer(){
+    ytPlayer = new YT.Player("ytPlayer", {
+      height: "1", width: "1",
+      playerVars: { controls: 0, disablekb: 1, playsinline: 1 },
+      events: {
+        onReady: () => { ytReady = true; },
+        onError: (e) => { lastYtError = ytErrorMessage(e.data); }
+      }
+    });
+  }
+  if (window.ytApiReady) { initYTPlayer(); } else { window.onYouTubeIframeAPIReady = initYTPlayer; }
+
+  function playClip(videoId, startSeconds, onDone, onError){
+    if (!ytReady) { setTimeout(() => playClip(videoId, startSeconds, onDone, onError), 300); return; }
+    clearTimeout(playTimer);
+    lastYtError = null;
+    ytPlayer.loadVideoById({ videoId, startSeconds });
+    setTimeout(() => { if (lastYtError && onError) onError(lastYtError); }, 1200);
+    playTimer = setTimeout(() => { ytPlayer.pauseVideo(); if (onDone) onDone(); }, CLIP_SECONDS * 1000);
+  }
+
+  /* ============================================
+     DATA FETCH — one track at a time, same anti-cheat pattern as the Practice Test
+     ============================================ */
+  async function fetchTrackData(id){
+    const idStr = String(id);
+    const [composerSnap, titleSnap, audioSnap] = await Promise.all([
+      getDoc(doc(db, "pieces_composer", idStr)),
+      getDoc(doc(db, "pieces_titles", idStr)),
+      getDoc(doc(db, "pieces_audio", idStr))
+    ]);
+    const composer = composerSnap.data().composer;
+    const titles = titleSnap.data();
+    const audio = audioSnap.data();
+    return {
+      composer,
+      majorWork: titles.majorWork,
+      selectionTitle: titles.selectionTitle || titles.majorWork, // fallback when no separate movement
+      videoId: audio.videoId,
+      musicStart: audio.musicStart || 0,
+      musicEnd: audio.musicEnd || CLIP_SECONDS
+    };
+  }
+
+  /* ============================================
+     RENDER — mode select / start screen
+     ============================================ */
+  const appEl = document.getElementById("app");
+
+  function renderModeSelect(){
+    appEl.innerHTML = `
+      <div class="mode-toggle">
+        <button class="mode-btn ${run.mode === 'unofficial' ? 'active' : ''}" data-mode="unofficial">
+          <h2>Unofficial</h2>
+          <p>Letter hints reveal over time. Great for practice — pause the reveal by typing.</p>
+        </button>
+        <button class="mode-btn ${run.mode === 'official' ? 'active' : ''}" data-mode="official">
+          <h2>Official</h2>
+          <p>No hints — blank text boxes only, just like the real test. Tracks your score and time.</p>
+        </button>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="margin-top:0;">16 tracks, shuffled order. For each, you'll recall the <strong>Composer</strong>, <strong>Major Work</strong>, and <strong>Selection Title</strong>.</p>
+        <button class="btn" id="startBtn">Start Rehearsal</button>
+      </div>
+    `;
+    appEl.querySelectorAll(".mode-btn").forEach(btn => {
+      btn.addEventListener("click", () => { run.mode = btn.dataset.mode; renderModeSelect(); });
+    });
+    document.getElementById("startBtn").addEventListener("click", () => {
+      run.order = shuffledIds();
+      run.index = 0;
+      run.results = [];
+      run.startedAt = Date.now();
+      renderTrack();
+    });
+  }
+
+  /* ============================================
+     RENDER — a single track
+     ============================================ */
+  async function renderTrack(){
+    if (run.index >= TOTAL_PIECES) { return renderRunResults(); }
+
+    const pieceId = run.order[run.index];
+    appEl.innerHTML = `<div class="card">Loading track ${run.index + 1}&hellip;</div>`;
+
+    let truth;
+    try {
+      truth = await fetchTrackData(pieceId);
+    } catch (err) {
+      appEl.innerHTML = `<div class="card">Couldn't load this track: ${err.message}</div>`;
+      return;
+    }
+
+    track = {
+      pieceId, truth,
+      playedAt: null,        // set on first Play press
+      replays: 0,
+      pauseStart: null,
+      totalPausedMs: 0,
+      lastKeystrokeAt: null,
+      submitted: false,
+      tickInterval: null,
+      watcherInterval: null
+    };
+
+    const fields = ["composer", "majorWork", "selectionTitle"];
+    const fieldLabels = { composer: "Composer", majorWork: "Major Work", selectionTitle: "Selection Title" };
+
+    const fieldsHtml = fields.map(f => `
+      <div class="field-group" data-field="${f}">
+        <label>${fieldLabels[f]}</label>
+        ${run.mode === "unofficial" ? `<div class="letter-boxes" id="boxes-${f}"></div>` : ""}
+        <input type="text" id="input-${f}" autocomplete="off" placeholder="${run.mode === 'official' ? 'Type your answer\u2026' : 'Type your guess\u2026'}">
+      </div>
+    `).join("");
+
+    appEl.innerHTML = `
+      <div class="card">
+        <div class="track-header">
+          <span class="track-badge">Track ${run.index + 1} of ${TOTAL_PIECES}</span>
+          <span class="score-live" id="scoreLive">Track value: ${BASE_TRACK_SCORE} pts</span>
+        </div>
+        <button class="play-btn" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z"/></svg>
+          Play 20-second clip
+        </button>
+        <p class="replay-note">Each replay after the first costs ${REPLAY_COST} points.</p>
+        <p class="player-status" id="playerStatus"></p>
+        ${fieldsHtml}
+      </div>
+      <div class="nav-btns">
+        <button class="btn" id="submitBtn">Submit &amp; Next Track</button>
+      </div>
+    `;
+
+    document.getElementById("playBtn").addEventListener("click", (e) => {
+      e.target.disabled = true;
+      const statusEl = document.getElementById("playerStatus");
+      statusEl.textContent = "Loading\u2026";
+      if (track.playedAt === null) {
+        track.playedAt = Date.now();
+        startRevealTicking(fields);
+      } else {
+        track.replays += 1;
+        updateLiveScore(fields);
+      }
+      const start = pickStartTime(truth.musicStart, truth.musicEnd);
+      playClip(truth.videoId, start,
+        () => { e.target.disabled = false; statusEl.textContent = ""; },
+        (errMsg) => { e.target.disabled = false; statusEl.textContent = errMsg; }
+      );
+    });
+
+    if (run.mode === "unofficial") {
+      fields.forEach(f => renderBoxes(f, 0));
+      fields.forEach(f => {
+        document.getElementById(`input-${f}`).addEventListener("input", () => onKeystroke());
+      });
+    }
+
+    document.getElementById("submitBtn").addEventListener("click", () => submitTrack(fields));
+  }
+
+  function renderBoxes(field, revealedCount){
+    const answer = track.truth[field];
+    const boxesEl = document.getElementById(`boxes-${field}`);
+    if (!boxesEl) return;
+    boxesEl.innerHTML = answer.split("").map((ch, i) => {
+      if (ch === " ") return `<span class="letter-cell space"></span>`;
+      const shown = i < revealedCount ? ch : "";
+      return `<span class="letter-cell">${shown}</span>`;
+    }).join("");
+  }
+
+  function currentRevealedTotal(){
+    if (!track || track.playedAt === null) return 0;
+    const now = Date.now();
+    const ongoingPause = track.pauseStart !== null ? (now - track.pauseStart) : 0;
+    const effectiveElapsed = (now - track.playedAt) - track.totalPausedMs - ongoingPause;
+    const ticks = Math.max(0, Math.floor((effectiveElapsed - REVEAL_DELAY_MS) / TICK_MS) + 1);
+    if (effectiveElapsed < REVEAL_DELAY_MS) return 0;
+    const fields = ["composer", "majorWork", "selectionTitle"];
+    let total = 0;
+    fields.forEach(f => { total += Math.min(ticks, track.truth[f].length); });
+    return total;
+  }
+
+  function updateLiveScore(fields){
+    const revealedTotal = run.mode === "unofficial" ? currentRevealedTotal() : 0;
+    const cost = revealedTotal * LETTER_HINT_COST + Math.max(0, track.replays) * REPLAY_COST;
+    const liveScore = Math.max(0, BASE_TRACK_SCORE - cost);
+    const el = document.getElementById("scoreLive");
+    if (el) el.textContent = `Track value: ${liveScore} pts`;
+  }
+
+  function onKeystroke(){
+    if (!track || track.submitted) return;
+    track.lastKeystrokeAt = Date.now();
+    if (track.pauseStart === null) { track.pauseStart = Date.now(); }
+  }
+
+  function startRevealTicking(fields){
+    track.tickInterval = setInterval(() => {
+      if (!track || track.submitted) return;
+      const ticks = Math.max(0, Math.floor(((Date.now() - track.playedAt) - track.totalPausedMs - (track.pauseStart !== null ? (Date.now() - track.pauseStart) : 0) - REVEAL_DELAY_MS) / TICK_MS) + 1);
+      fields.forEach(f => {
+        const revealed = ((Date.now() - track.playedAt) - track.totalPausedMs) < REVEAL_DELAY_MS ? 0 : Math.min(ticks, track.truth[f].length);
+        renderBoxes(f, revealed);
+      });
+      updateLiveScore(fields);
+    }, 250);
+
+    track.watcherInterval = setInterval(() => {
+      if (!track || track.submitted) return;
+      if (track.pauseStart !== null && track.lastKeystrokeAt !== null && (Date.now() - track.lastKeystrokeAt) >= TYPING_PAUSE_MS) {
+        track.totalPausedMs += (Date.now() - track.pauseStart);
+        track.pauseStart = null;
+      }
+    }, 250);
+  }
+
+  function submitTrack(fields){
+    if (track.submitted) return;
+    track.submitted = true;
+    clearInterval(track.tickInterval);
+    clearInterval(track.watcherInterval);
+
+    const guesses = {};
+    fields.forEach(f => { guesses[f] = document.getElementById(`input-${f}`).value; });
+
+    const allCorrect = fields.every(f => norm(guesses[f]) === norm(track.truth[f]));
+    const revealedTotal = run.mode === "unofficial" ? currentRevealedTotal() : 0;
+    const cost = revealedTotal * LETTER_HINT_COST + Math.max(0, track.replays) * REPLAY_COST;
+    const trackScore = allCorrect ? Math.max(0, BASE_TRACK_SCORE - cost) : 0;
+
+    run.results.push({
+      pieceId: track.pieceId,
+      truth: track.truth,
+      guesses,
+      correct: allCorrect,
+      trackScore,
+      revealedTotal,
+      replays: track.replays
+    });
+
+    run.index += 1;
+    renderTrack();
+  }
+
+  /* ============================================
+     RESULTS
+     ============================================ */
+  function renderRunResults(){
+    const totalScore = run.results.reduce((sum, r) => sum + r.trackScore, 0);
+    const elapsedMs = Date.now() - run.startedAt;
+    const minutes = Math.floor(elapsedMs / 60000);
+    const seconds = Math.floor((elapsedMs % 60000) / 1000);
+
+    const rowsHtml = run.results.map(r => `
+      <div class="result-row">
+        <span class="mark ${r.correct ? 'correct' : 'incorrect'}">${r.correct ? '&#10003;' : '&#10007;'}</span>
+        <div class="body">
+          <strong>${r.truth.composer}</strong> &mdash; ${r.truth.majorWork}${r.truth.selectionTitle !== r.truth.majorWork ? ` (${r.truth.selectionTitle})` : ""}<br>
+          ${!r.correct ? `<span style="color:var(--bad);font-size:0.85rem;">Your answers: ${r.guesses.composer || "(blank)"} / ${r.guesses.majorWork || "(blank)"} / ${r.guesses.selectionTitle || "(blank)"}</span>` : ""}
+        </div>
+        <span class="points">${r.trackScore} pts</span>
+      </div>
+    `).join("");
+
+    appEl.innerHTML = `
+      <div class="card">
+        <div class="score-banner">${totalScore} / ${TOTAL_PIECES * BASE_TRACK_SCORE}</div>
+        <div class="time-banner">Completed in ${minutes}m ${seconds}s &middot; ${run.mode === "official" ? "Official" : "Unofficial"} mode</div>
+        ${run.mode === "official" ? `<p class="leaderboard-note">Leaderboard submission is coming soon \u2014 your score and time above are yours to keep for now.</p>` : ""}
+        ${rowsHtml}
+      </div>
+      <div class="nav-btns"><button class="btn" id="restart">Practice Again</button></div>
+    `;
+    document.getElementById("restart").addEventListener("click", renderModeSelect);
+  }
+
+  renderModeSelect();
+</script>
+
+</body>
+</html>
