@@ -47,6 +47,39 @@
     *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
   }
 
+  .site-nav{
+    background:var(--navy-deep);
+    padding:12px 24px;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:center;
+    gap:4px 22px;
+    font-size:0.85rem;
+    border-bottom:1px solid rgba(241,231,208,0.12);
+  }
+  .site-nav a{
+    color:rgba(241,231,208,0.85);
+    text-decoration:none;
+    padding:4px 2px;
+    border-bottom:2px solid transparent;
+    transition:color 0.15s ease, border-color 0.15s ease;
+  }
+  .site-nav a:hover, .site-nav a:focus-visible{
+    color:var(--orange-bright);
+  }
+  .site-nav a.brand{
+    font-weight:700;
+    color:var(--parchment);
+  }
+  .site-nav a.current{
+    border-bottom-color:var(--orange);
+    color:var(--orange-bright);
+  }
+  .site-nav .divider{
+    color:rgba(241,231,208,0.35);
+  }
+
   .hero{
     position:relative;
     background:
@@ -156,6 +189,13 @@
 </style>
 </head>
 <body>
+
+<nav class="site-nav">
+  <a class="brand" href="https://sites.google.com/view/saisd-music-memory/saisd-music-memory">SAISD Music Memory</a>
+  <span class="divider">&middot;</span>
+  <a href="https://sites.google.com/view/saisd-music-memory/saisd-music-memory/the-music">The Music</a>
+  <a class="current" href="https://jlk521-ctrl.github.io/music-memory/rehearsal-room.html">Practice Test</a>
+</nav>
 
 <header class="hero">
   <p class="season-label">Music Memory 26-27</p>
