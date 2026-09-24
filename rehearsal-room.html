@@ -206,7 +206,7 @@
   const TYPING_PAUSE_MS = 5000;    // resume 5s after last keystroke
   const BASE_TRACK_SCORE = 100;
   const LETTER_HINT_COST = 5;
-  const OFFICIAL_POINTS_PER_FIELD = 33;
+  const OFFICIAL_POINTS_PER_FIELD = 33.33;
   const OFFICIAL_REPLAY_COST = 25;
 
   /* ============================================
@@ -395,7 +395,7 @@
       }
     }
 
-    const trackMaxScore = run.mode === "official" ? OFFICIAL_POINTS_PER_FIELD * 3 : BASE_TRACK_SCORE;
+    const trackMaxScore = run.mode === "official" ? Math.ceil(OFFICIAL_POINTS_PER_FIELD * 3) : BASE_TRACK_SCORE;
 
     const fieldsHtml = fields.map(f => `
       <div class="field-group" data-field="${f}">
@@ -483,7 +483,7 @@
     const el = document.getElementById("scoreLive");
     if (!el) return;
     if (run.mode === "official") {
-      const ceiling = Math.max(0, (OFFICIAL_POINTS_PER_FIELD * fields.length) - Math.max(0, track.replays) * OFFICIAL_REPLAY_COST);
+      const ceiling = Math.max(0, Math.ceil(OFFICIAL_POINTS_PER_FIELD * fields.length) - Math.max(0, track.replays) * OFFICIAL_REPLAY_COST);
       el.textContent = `Track value: up to ${ceiling} pts`;
     } else {
       const cost = track.revealedCount * LETTER_HINT_COST;
@@ -540,6 +540,7 @@
         fieldCorrect[f] = isCorrect;
         if (isCorrect) trackScore += OFFICIAL_POINTS_PER_FIELD;
       });
+      trackScore = Math.ceil(trackScore);
       trackScore = Math.max(0, trackScore - Math.max(0, track.replays) * OFFICIAL_REPLAY_COST);
       const allCorrect = fields.every(f => fieldCorrect[f]);
       return { guesses, correct: allCorrect, fieldCorrect, trackScore, revealedTotal: 0, replays: track.replays };
@@ -590,7 +591,7 @@
      ============================================ */
   function renderRunResults(){
     const totalScore = run.results.reduce((sum, r) => sum + r.trackScore, 0);
-    const maxPossible = run.mode === "official" ? TOTAL_PIECES * OFFICIAL_POINTS_PER_FIELD * 3 : TOTAL_PIECES * BASE_TRACK_SCORE;
+    const maxPossible = run.mode === "official" ? TOTAL_PIECES * Math.ceil(OFFICIAL_POINTS_PER_FIELD * 3) : TOTAL_PIECES * BASE_TRACK_SCORE;
     const elapsedMs = Date.now() - run.startedAt;
     const minutes = Math.floor(elapsedMs / 60000);
     const seconds = Math.floor((elapsedMs % 60000) / 1000);
