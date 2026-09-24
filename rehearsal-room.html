@@ -184,6 +184,48 @@
   .time-banner{ text-align:center; font-size:0.9rem; color:#8a7a63; margin-bottom:20px; }
   .leaderboard-note{ text-align:center; font-size:0.85rem; color:#8a7a63; font-style:italic; margin-top:16px; }
 
+  .with-sidebar{
+    display:grid;
+    grid-template-columns:1fr 280px;
+    gap:20px;
+    align-items:start;
+  }
+  @media (max-width:760px){
+    .with-sidebar{ grid-template-columns:1fr; }
+  }
+
+  .leaderboard-sidebar{
+    background:#fff;
+    border:1px solid rgba(18,35,65,0.12);
+    border-radius:6px;
+    padding:18px;
+    box-shadow:0 14px 30px -18px rgba(0,0,0,0.25);
+  }
+  .lb-title{
+    font-family:var(--display); font-style:italic; color:var(--navy-text);
+    margin:0 0 12px; font-size:1.1rem;
+  }
+  .lb-list{ list-style:none; margin:0; padding:0; }
+  .lb-list li{
+    display:flex; align-items:baseline; gap:6px;
+    padding:6px 0; border-bottom:1px solid rgba(18,35,65,0.08);
+    font-size:0.85rem;
+  }
+  .lb-list li:last-child{ border-bottom:none; }
+  .lb-name{ font-weight:700; color:var(--navy); }
+  .lb-meta{ color:#8a7a63; font-size:0.78rem; flex-grow:1; }
+  .lb-score{ font-family:var(--display); font-style:italic; color:var(--orange); }
+  .lb-loading, .lb-empty{ font-size:0.85rem; color:#8a7a63; }
+
+  .lb-submit-box{
+    background:var(--parchment-dim);
+    border:1px solid rgba(217,126,44,0.3);
+    border-radius:6px;
+    padding:16px;
+    margin-bottom:20px;
+    text-align:left;
+  }
+
   footer{ background:var(--navy-deep); color:rgba(241,231,208,0.6); text-align:center; padding:24px; font-size:0.85rem; }
 
 </style>
@@ -222,7 +264,7 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { initializeFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { initializeFirestore, doc, getDoc, setDoc, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   /* ============================================
      Same Music Memory Firebase project as the Practice Test
@@ -248,6 +290,18 @@
   const LETTER_HINT_COST = 5;
   const OFFICIAL_POINTS_PER_FIELD = 33.33;
   const OFFICIAL_REPLAY_COST = 25;
+  const LEADERBOARD_QUALIFY_SCORE = 800; // "greater than 799"
+  const GRADE_OPTIONS = ["2nd Grade", "3rd Grade", "4th Grade", "5th Grade"];
+  const SCHOOL_OPTIONS = [
+    "Belaire", "Bonham", "Bowie", "Bradford", "Crockett", "Fannin",
+    "Fort Concho", "Glenmore", "Goliad", "Holiman", "Lamar",
+    "McGill", "Reagan", "San Jacinto", "Santa Rita"
+  ];
+
+  function slugify(firstName, grade, school){
+    const clean = s => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    return `${clean(firstName)}_${clean(grade)}_${clean(school)}`;
+  }
 
   /* ============================================
      STATE
@@ -323,6 +377,42 @@
   /* ============================================
      DATA FETCH — one track at a time, same anti-cheat pattern as the Practice Test
      ============================================ */
+  async function fetchLeaderboardTop(n){
+    try {
+      const q = query(collection(db, "leaderboard_approved"), orderBy("bestScore", "desc"), limit(n));
+      const snap = await getDocs(q);
+      const rows = [];
+      snap.forEach(d => rows.push(d.data()));
+      return rows;
+    } catch (err) {
+      return null; // fails quietly — sidebar just won't render if this errors
+    }
+  }
+
+  async function renderLeaderboardSidebarInto(containerId){
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = `<p class="lb-loading">Loading leaderboard\u2026</p>`;
+    const rows = await fetchLeaderboardTop(30);
+    if (!rows) { el.innerHTML = ""; return; }
+    if (rows.length === 0) {
+      el.innerHTML = `<h3 class="lb-title">Leaderboard</h3><p class="lb-empty">No approved scores yet \u2014 be the first!</p>`;
+      return;
+    }
+    el.innerHTML = `
+      <h3 class="lb-title">Leaderboard</h3>
+      <ol class="lb-list">
+        ${rows.map(r => `
+          <li>
+            <span class="lb-name">${r.firstName}</span>
+            <span class="lb-meta">${r.grade} \u00b7 ${r.school}</span>
+            <span class="lb-score">${r.bestScore}</span>
+          </li>
+        `).join("")}
+      </ol>
+    `;
+  }
+
   async function fetchTrackData(id){
     const idStr = String(id);
     const [composerSnap, titleSnap, audioSnap] = await Promise.all([
@@ -360,9 +450,13 @@
           <p>No hints — blank text boxes only, just like the real test. Tracks your score and time.</p>
         </button>
       </div>
-      <div class="card" style="text-align:center;">
-        <p style="margin-top:0;">16 tracks, shuffled order. For each, you'll recall the <strong>Composer</strong>, <strong>Major Work</strong>, and <strong>Selection Title</strong>.</p>
-        <button class="btn" id="startBtn">Start Rehearsal</button>
+      <div class="with-sidebar">
+        <div class="card" style="text-align:center;">
+          <p style="margin-top:0;">${TOTAL_PIECES} tracks, shuffled order. For each, you'll recall the <strong>Composer</strong>, <strong>Major Work</strong>, and <strong>Selection Title</strong>.</p>
+          ${run.mode === 'official' ? `<p style="font-size:0.85rem;color:#8a7a63;">Score ${LEADERBOARD_QUALIFY_SCORE}+ to qualify for the leaderboard!</p>` : ""}
+          <button class="btn" id="startBtn">Start Rehearsal</button>
+        </div>
+        ${run.mode === 'official' ? `<aside class="leaderboard-sidebar" id="lbSidebarModeSelect"></aside>` : ""}
       </div>
     `;
     appEl.querySelectorAll(".mode-btn").forEach(btn => {
@@ -375,6 +469,7 @@
       run.startedAt = Date.now();
       renderTrack();
     });
+    if (run.mode === 'official') { renderLeaderboardSidebarInto("lbSidebarModeSelect"); }
   }
 
   /* ============================================
@@ -647,16 +742,76 @@
       `;
     }).join("");
 
+    const qualifies = run.mode === "official" && totalScore > (LEADERBOARD_QUALIFY_SCORE - 1);
+
     appEl.innerHTML = `
-      <div class="card">
-        <div class="score-banner">${totalScore} / ${maxPossible}</div>
-        <div class="time-banner">Completed in ${minutes}m ${seconds}s &middot; ${run.mode === "official" ? "Official" : "Unofficial"} mode</div>
-        ${run.mode === "official" ? `<p class="leaderboard-note">Leaderboard submission is coming soon \u2014 your score and time above are yours to keep for now.</p>` : ""}
-        ${rowsHtml}
+      <div class="with-sidebar">
+        <div>
+          <div class="card">
+            <div class="score-banner">${totalScore} / ${maxPossible}</div>
+            <div class="time-banner">Completed in ${minutes}m ${seconds}s &middot; ${run.mode === "official" ? "Official" : "Unofficial"} mode</div>
+            ${qualifies ? `
+              <div class="lb-submit-box">
+                <p style="margin-top:0;"><strong>Score of ${LEADERBOARD_QUALIFY_SCORE}+ \u2014 you qualify for the leaderboard!</strong></p>
+                <input type="text" id="lbFirstName" placeholder="First name" style="width:100%;padding:8px;margin-bottom:8px;">
+                <select id="lbGrade" style="width:100%;padding:8px;margin-bottom:8px;">
+                  <option value="">Grade\u2026</option>
+                  ${GRADE_OPTIONS.map(g => `<option value="${g}">${g}</option>`).join("")}
+                </select>
+                <select id="lbSchool" style="width:100%;padding:8px;margin-bottom:8px;">
+                  <option value="">School\u2026</option>
+                  ${SCHOOL_OPTIONS.map(s => `<option value="${s}">${s}</option>`).join("")}
+                </select>
+                <button class="btn" id="lbSubmitBtn" style="width:100%;">Submit to Leaderboard</button>
+                <p id="lbSubmitStatus" style="font-size:0.85rem;color:#8a7a63;min-height:1.2em;margin:8px 0 0;"></p>
+              </div>
+            ` : ""}
+            ${rowsHtml}
+          </div>
+          <div class="nav-btns"><button class="btn" id="restart">Practice Again</button></div>
+        </div>
+        ${run.mode === "official" ? `<aside class="leaderboard-sidebar" id="lbSidebarResults"></aside>` : ""}
       </div>
-      <div class="nav-btns"><button class="btn" id="restart">Practice Again</button></div>
     `;
     document.getElementById("restart").addEventListener("click", renderModeSelect);
+    if (run.mode === "official") { renderLeaderboardSidebarInto("lbSidebarResults"); }
+
+    if (qualifies) {
+      document.getElementById("lbSubmitBtn").addEventListener("click", async () => {
+        const firstName = document.getElementById("lbFirstName").value.trim();
+        const grade = document.getElementById("lbGrade").value;
+        const school = document.getElementById("lbSchool").value;
+        const statusEl = document.getElementById("lbSubmitStatus");
+        if (!firstName || !grade || !school) {
+          statusEl.textContent = "Please fill in your name, grade, and school.";
+          return;
+        }
+        statusEl.textContent = "Submitting\u2026";
+        const slug = slugify(firstName, grade, school);
+        try {
+          const approvedSnap = await getDoc(doc(db, "leaderboard_approved", slug));
+          if (approvedSnap.exists()) {
+            const existing = approvedSnap.data();
+            if (totalScore > existing.bestScore) {
+              await setDoc(doc(db, "leaderboard_approved", slug), {
+                firstName, grade, school, bestScore: totalScore, bestCompletionMs: elapsedMs, updatedAt: Date.now()
+              });
+              statusEl.textContent = "New best score posted to the leaderboard!";
+              renderLeaderboardSidebarInto("lbSidebarResults");
+            } else {
+              statusEl.textContent = `You're already on the leaderboard with a score of ${existing.bestScore} \u2014 keep that one!`;
+            }
+          } else {
+            await setDoc(doc(db, "leaderboard_pending", slug), {
+              firstName, grade, school, score: totalScore, completionMs: elapsedMs, submittedAt: Date.now()
+            });
+            statusEl.textContent = "Submitted! Once your teacher approves your first score, it'll appear on the leaderboard.";
+          }
+        } catch (err) {
+          statusEl.textContent = "Couldn't submit right now: " + err.message;
+        }
+      });
+    }
   }
 
   renderModeSelect();
