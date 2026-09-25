@@ -290,7 +290,7 @@
   const LETTER_HINT_COST = 5;
   const OFFICIAL_POINTS_PER_FIELD = 33.33;
   const OFFICIAL_REPLAY_COST = 25;
-  const LEADERBOARD_QUALIFY_SCORE = 700; // "700 or better"
+  const LEADERBOARD_QUALIFY_SCORE = 1; // any score greater than zero qualifies
   const GRADE_OPTIONS = ["2nd Grade", "3rd Grade", "4th Grade", "5th Grade"];
   const SCHOOL_OPTIONS = [
     "Belaire", "Bonham", "Bowie", "Bradford", "Crockett", "Fannin",
@@ -453,7 +453,7 @@
       <div class="with-sidebar">
         <div class="card" style="text-align:center;">
           <p style="margin-top:0;">${TOTAL_PIECES} tracks, shuffled order. For each, you'll recall the <strong>Composer</strong>, <strong>Major Work</strong>, and <strong>Selection Title</strong>.</p>
-          ${run.mode === 'official' ? `<p style="font-size:0.85rem;color:#8a7a63;">Score ${LEADERBOARD_QUALIFY_SCORE}+ to qualify for the leaderboard!</p>` : ""}
+          ${run.mode === 'official' ? `<p style="font-size:0.85rem;color:#8a7a63;">Any score above zero qualifies for the leaderboard!</p>` : ""}
           <button class="btn" id="startBtn">Start Rehearsal</button>
         </div>
         ${run.mode === 'official' ? `<aside class="leaderboard-sidebar" id="lbSidebarModeSelect"></aside>` : ""}
@@ -772,7 +772,7 @@
             <div class="time-banner">Completed in ${minutes}m ${seconds}s &middot; ${run.mode === "official" ? "Official" : "Unofficial"} mode</div>
             ${qualifies ? `
               <div class="lb-submit-box">
-                <p style="margin-top:0;"><strong>Score of ${LEADERBOARD_QUALIFY_SCORE}+ \u2014 you qualify for the leaderboard!</strong></p>
+                <p style="margin-top:0;"><strong>You qualify for the leaderboard!</strong></p>
                 <input type="text" id="lbFirstName" placeholder="First name" style="width:100%;padding:8px;margin-bottom:8px;">
                 <select id="lbGrade" style="width:100%;padding:8px;margin-bottom:8px;">
                   <option value="">Grade\u2026</option>
