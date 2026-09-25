@@ -284,13 +284,13 @@
   const TOTAL_PIECES = 10;
   const CLIP_SECONDS = 20;
   const REVEAL_DELAY_MS = 10000;   // reveal starts 10s after first Play
-  const TICK_MS = 1000;            // one new letter (across all fields combined) per tick
+  const TICK_MS = 2000;            // one new letter per category, every 2 seconds
   const TYPING_PAUSE_MS = 5000;    // resume 5s after last keystroke
   const BASE_TRACK_SCORE = 100;
   const LETTER_HINT_COST = 5;
   const OFFICIAL_POINTS_PER_FIELD = 33.33;
   const OFFICIAL_REPLAY_COST = 25;
-  const LEADERBOARD_QUALIFY_SCORE = 800; // "greater than 799"
+  const LEADERBOARD_QUALIFY_SCORE = 700; // "700 or better"
   const GRADE_OPTIONS = ["2nd Grade", "3rd Grade", "4th Grade", "5th Grade"];
   const SCHOOL_OPTIONS = [
     "Belaire", "Bonham", "Bowie", "Bradford", "Crockett", "Fannin",
@@ -503,7 +503,8 @@
       submitted: false,
       tickInterval: null,
       watcherInterval: null,
-      ticks: 0               // shared reveal-tick count, applied to all fields simultaneously
+      ticks: 0,               // shared reveal-tick count, applied to all fields simultaneously
+      revealOrders: {}        // per-field shuffled index order (Unofficial only)
     };
 
     const fieldLabels = { composer: "Composer", majorWork: "Major Work", selectionTitle: "Selection Title" };
@@ -514,6 +515,20 @@
     const fields = (run.mode === "unofficial" && truth.selectionTitle === "")
       ? ["composer", "majorWork"]
       : ["composer", "majorWork", "selectionTitle"];
+
+    if (run.mode === "unofficial") {
+      fields.forEach(f => {
+        const indexes = [];
+        truth[f].split("").forEach((ch, i) => { if (ch !== " ") indexes.push(i); });
+        // Fisher-Yates shuffle — each field reveals its own letters in random
+        // position, not left-to-right, so it doesn't just slowly spell out.
+        for (let i = indexes.length - 1; i > 0; i--){
+          const j = Math.floor(Math.random() * (i + 1));
+          [indexes[i], indexes[j]] = [indexes[j], indexes[i]];
+        }
+        track.revealOrders[f] = indexes;
+      });
+    }
 
     const trackMaxScore = run.mode === "official" ? Math.ceil(OFFICIAL_POINTS_PER_FIELD * 3) : BASE_TRACK_SCORE;
 
@@ -580,10 +595,12 @@
     const answer = track.truth[field];
     const boxesEl = document.getElementById(`boxes-${field}`);
     if (!boxesEl) return;
-    const revealed = Math.min(track.ticks, answer.length);
+    const order = track.revealOrders[field] || [];
+    const revealed = Math.min(track.ticks, order.length);
+    const revealedSet = new Set(order.slice(0, revealed));
     boxesEl.innerHTML = answer.split("").map((ch, i) => {
       if (ch === " ") return `<span class="letter-cell space"></span>`;
-      const shown = i < revealed ? ch : "";
+      const shown = revealedSet.has(i) ? ch : "";
       return `<span class="letter-cell">${shown}</span>`;
     }).join("");
   }
@@ -599,7 +616,10 @@
 
   function revealedTotalForScoring(fields){
     let total = 0;
-    fields.forEach(f => { total += Math.min(track.ticks, track.truth[f].length); });
+    fields.forEach(f => {
+      const order = track.revealOrders[f] || [];
+      total += Math.min(track.ticks, order.length);
+    });
     return total;
   }
 
