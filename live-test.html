@@ -165,7 +165,7 @@
     };
 
     let currentTrackIndex = -1;
-    let runStartedAt = null;
+    let lastTrackPlayedAt = null;
     let lastSyncedAt = 0;
     let syncTimer = null;
 
@@ -175,7 +175,7 @@
       if (!snap.exists()) return;
       const run = snap.data();
       currentTrackIndex = run.currentTrackIndex;
-      runStartedAt = run.startedAt;
+      lastTrackPlayedAt = run.lastTrackPlayedAt || null;
       const badge = document.getElementById("trackBadgeText");
       if (badge) {
         badge.textContent = run.status === "finished"
@@ -263,7 +263,7 @@
 
     async function submitFinal(){
       local.submitted = true;
-      local.completionMs = runStartedAt ? (Date.now() - runStartedAt) : null;
+      local.completionMs = lastTrackPlayedAt ? (Date.now() - lastTrackPlayedAt) : null;
       saveLocal(code, studentId, local);
       const btn = document.getElementById("submitBtn");
       if (btn) { btn.disabled = true; btn.textContent = "Submitting\u2026"; }
