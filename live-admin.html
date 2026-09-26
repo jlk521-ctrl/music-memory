@@ -382,6 +382,7 @@
           <div class="run-row">
             <div class="info"><strong>${r.label}</strong> <span style="color:#8a7a63;font-size:0.85rem;">${r.status} \u2014 code ${r.id}</span></div>
             <button class="btn small" data-action="open-run" data-id="${r.id}">Open</button>
+            <button class="btn small danger" data-action="delete-run" data-id="${r.id}">Delete</button>
           </div>
         `).join("")}
       </div>
@@ -408,6 +409,21 @@
 
     content.querySelectorAll('[data-action="open-run"]').forEach(btn => {
       btn.addEventListener("click", () => { activeRunCode = btn.dataset.id; renderRunsTab(); });
+    });
+
+    content.querySelectorAll('[data-action="delete-run"]').forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Delete this run and all its student responses? This can't be undone.")) return;
+        const code = btn.dataset.id;
+        try {
+          const respSnap = await getDocs(collection(db, "live_runs", code, "responses"));
+          await Promise.all(respSnap.docs.map(d => deleteDoc(d.ref)));
+          await deleteDoc(doc(db, "live_runs", code));
+          renderRunsTab();
+        } catch (err) {
+          alert("Couldn't delete: " + err.message);
+        }
+      });
     });
   }
 
@@ -548,14 +564,36 @@
     content.innerHTML = `
       <div class="card">
         <h2 class="section-title">${run.label} \u2014 Results</h2>
-        ${graded.length === 0 ? `<p class="status-msg">No submissions yet.</p>` : graded.map(g => `
-          <div class="results-row" data-slug="${slugFor(g.firstName, g.grade, g.school)}">
+        ${graded.length === 0 ? `<p class="status-msg">No submissions yet.</p>` : graded.map((g, gi) => `
+          <div class="results-row" data-slug="${slugFor(g.firstName, g.grade, g.school)}" style="flex-wrap:wrap;">
             <div style="flex-grow:1;">
               <strong>${g.firstName || "(no name)"}</strong> \u2014 ${g.grade || "?"} \u00b7 ${g.school || "?"}
               <div style="font-size:0.78rem;color:#8a7a63;">${g.perTrack.filter(t => t.trackScore === 100).length}/${TOTAL_PIECES} tracks perfect</div>
             </div>
             <div class="score">${g.totalScore}</div>
+            <button class="btn small secondary" data-action="toggle-details" data-idx="${gi}">View Details</button>
             <button class="btn small" data-action="post" data-firstname="${g.firstName}" data-grade="${g.grade}" data-school="${g.school}" data-score="${g.totalScore}" data-time="${g.completionMs || 0}">Post to Leaderboard</button>
+            <div class="detail-panel" id="detail-${gi}" style="display:none; width:100%; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(18,35,65,0.15);">
+              ${template.order.map((pieceId, i) => {
+                const truth = pieces[pieceId];
+                const ans = (g.answers && g.answers[i]) || {};
+                const t = g.perTrack[i];
+                const allOk = t.composerOk && t.majorOk && t.selOk;
+                return `
+                  <div style="padding:6px 0; font-size:0.85rem; border-bottom:1px solid rgba(18,35,65,0.06);">
+                    <span class="${allOk ? 'mark correct' : 'mark incorrect'}">${allOk ? "\u2713" : "\u2717"}</span>
+                    Track ${i + 1}: <strong>${truth.composer}</strong> \u2014 ${truth.majorWork}${truth.selectionTitle ? ` (${truth.selectionTitle})` : ""}
+                    ${!allOk ? `
+                      <div style="color:var(--bad); margin-top:2px; font-size:0.8rem;">
+                        ${!t.composerOk ? `Composer: wrote "${ans.composer || "(blank)"}"<br>` : ""}
+                        ${!t.majorOk ? `Major Work: wrote "${ans.majorWork || "(blank)"}"<br>` : ""}
+                        ${!t.selOk ? `Selection Title: wrote "${ans.selectionTitle || "(blank)"}"` : ""}
+                      </div>
+                    ` : ""}
+                  </div>
+                `;
+              }).join("")}
+            </div>
           </div>
         `).join("")}
       </div>
@@ -563,6 +601,15 @@
       <p class="status-msg" id="postStatus"></p>
     `;
     document.getElementById("backBtn").addEventListener("click", () => { activeRunCode = null; renderRunsTab(); });
+
+    content.querySelectorAll('[data-action="toggle-details"]').forEach(btn => {
+      btn.addEventListener("click", () => {
+        const panel = document.getElementById(`detail-${btn.dataset.idx}`);
+        const showing = panel.style.display !== "none";
+        panel.style.display = showing ? "none" : "block";
+        btn.textContent = showing ? "View Details" : "Hide Details";
+      });
+    });
 
     content.querySelectorAll('[data-action="post"]').forEach(btn => {
       btn.addEventListener("click", async () => {
