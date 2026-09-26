@@ -22,9 +22,36 @@
     background:radial-gradient(ellipse at 50% -10%, rgba(240,184,62,0.15), transparent 60%),
       linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
     color:var(--parchment); font-family:var(--body);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    min-height:100vh; padding:32px; text-align:center; overflow:hidden;
+    display:flex; flex-direction:row; align-items:stretch; justify-content:center; gap:24px;
+    min-height:100vh; padding:24px; overflow:hidden;
   }
+  @media (max-width:1100px){ body{ flex-direction:column; align-items:center; } }
+
+  #centerCol{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; flex:1 1 auto; min-width:0; }
+
+  .side-panel{
+    flex:0 0 300px; max-width:300px;
+    background:rgba(241,231,208,0.06); border:1px solid rgba(241,231,208,0.15); border-radius:10px;
+    padding:20px; display:flex; flex-direction:column;
+    max-height:90vh; overflow-y:auto;
+  }
+  @media (max-width:1100px){ .side-panel{ flex:0 0 auto; max-width:600px; width:100%; max-height:260px; } }
+  .side-panel h2{
+    font-family:var(--display); font-style:italic; font-weight:600;
+    font-size:clamp(1.3rem, 2.5vw, 1.8rem); margin:0 0 14px; color:var(--orange-bright); text-align:center;
+  }
+  .side-panel ol{ list-style:none; margin:0; padding:0; }
+  .side-panel li{
+    display:flex; align-items:baseline; gap:8px;
+    padding:8px 0; border-bottom:1px solid rgba(241,231,208,0.1);
+    font-size:clamp(0.95rem, 1.4vw, 1.15rem);
+  }
+  .side-panel li:last-child{ border-bottom:none; }
+  .side-panel .rank-num{ font-family:var(--display); font-style:italic; color:var(--orange); min-width:1.5em; }
+  .side-panel .sp-name{ font-weight:700; flex-grow:1; }
+  .side-panel .sp-meta{ font-size:0.78em; color:rgba(241,231,208,0.6); display:block; }
+  .side-panel .sp-score{ font-family:var(--display); font-style:italic; color:var(--orange-bright); }
+  .side-panel .empty{ text-align:center; color:rgba(241,231,208,0.6); font-size:0.95rem; }
 
   h1{ font-family:var(--display); font-style:italic; font-weight:600; font-size:clamp(2.4rem, 6vw, 4.2rem); margin:0 0 8px; }
   .join-line{ font-size:clamp(1.2rem, 3vw, 1.8rem); margin-bottom:28px; }
@@ -76,7 +103,12 @@
 </head>
 <body>
 
-<div id="mainView">
+<aside class="side-panel" id="runScoreboard">
+  <h2>Current Run Scoreboard</h2>
+  <p class="empty">No submissions yet.</p>
+</aside>
+
+<div id="centerCol">
   <h1 id="runLabel">Live Test</h1>
   <p class="join-line">Join code: <span class="code" id="joinCodeText">\u2013</span></p>
   <img id="qrImg" alt="QR code to join this test" style="width:180px;height:180px;margin:0 auto 28px;border-radius:8px;display:none;">
@@ -87,11 +119,16 @@
   <div class="traffic-light idle" id="trafficLight">Waiting</div>
 </div>
 
+<aside class="side-panel" id="globalLeaderboard">
+  <h2>Global Leaderboard</h2>
+  <p class="empty">Loading\u2026</p>
+</aside>
+
 <div id="splashRoot"></div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { initializeFirestore, doc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { initializeFirestore, doc, getDoc, getDocs, onSnapshot, collection, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC1buaseorV5ZMvicSbYrzx3tz7_tos_wQ",
@@ -207,6 +244,85 @@
     setTimeout(() => { overlay.remove(); }, 8000);
   }
 
+  const runScoreboardEl = document.getElementById("runScoreboard");
+  const globalLeaderboardEl = document.getElementById("globalLeaderboard");
+  const OFFICIAL_POINTS_PER_FIELD = 33.33;
+
+  function norm(s){
+    return (s || "").trim().toLowerCase().replace(/\s+/g, " ")
+      .replace(/[\u2018\u2019\u02bc]/g, "'")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function levenshtein(a, b){
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++){
+      for (let j = 1; j <= n; j++){
+        dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
+    }
+    return dp[m][n];
+  }
+
+  function gradeMatch(guessRaw, truthRaw){
+    const guess = norm(guessRaw), truth = norm(truthRaw);
+    if (truth === "") return guess === "" ? 1 : 0;
+    if (guess === "") return 0;
+    if (guess === truth) return 1;
+    const dist = levenshtein(guess, truth);
+    const threshold = Math.max(1, Math.round(truth.length * 0.2));
+    return dist <= threshold ? 0.5 : 0;
+  }
+
+  async function fetchAllPieceInfo(){
+    const [composerSnap, titleSnap] = await Promise.all([
+      getDocs(collection(db, "pieces_composer")),
+      getDocs(collection(db, "pieces_titles"))
+    ]);
+    const composers = {}, titles = {};
+    composerSnap.forEach(d => composers[d.id] = d.data().composer);
+    titleSnap.forEach(d => titles[d.id] = d.data());
+    const pieces = {};
+    for (let i = 1; i <= TOTAL_PIECES; i++){
+      const id = String(i);
+      pieces[id] = { composer: composers[id], majorWork: titles[id]?.majorWork, selectionTitle: titles[id]?.selectionTitle || "" };
+    }
+    return pieces;
+  }
+
+  function gradeResponse(response, template, pieces){
+    let total = 0;
+    template.order.forEach((pieceId, i) => {
+      const truth = pieces[pieceId];
+      const ans = (response.answers && response.answers[i]) || {};
+      const credit = gradeMatch(ans.composer, truth.composer) + gradeMatch(ans.majorWork, truth.majorWork) + gradeMatch(ans.selectionTitle, truth.selectionTitle || "");
+      total += Math.ceil(credit * OFFICIAL_POINTS_PER_FIELD);
+    });
+    return total;
+  }
+
+  function renderPanelList(el, rows, emptyMsg){
+    if (rows.length === 0) { el.querySelector("ol")?.remove(); if (!el.querySelector(".empty")) el.insertAdjacentHTML("beforeend", `<p class="empty">${emptyMsg}</p>`); return; }
+    el.querySelector(".empty")?.remove();
+    let ol = el.querySelector("ol");
+    if (!ol) { ol = document.createElement("ol"); el.appendChild(ol); }
+    ol.innerHTML = rows.map((r, i) => `
+      <li>
+        <span class="rank-num">${i + 1}.</span>
+        <span>
+          <span class="sp-name">${r.firstName || "?"}</span>
+          <span class="sp-meta">${r.grade || "?"} \u00b7 ${r.school || "?"}</span>
+        </span>
+        <span class="sp-score">${r.score}</span>
+      </li>
+    `).join("");
+  }
+
+  let templateSetupDone = false;
+
   onSnapshot(doc(db, "live_runs", code), (snap) => {
     if (!snap.exists()) return;
     const run = snap.data();
@@ -221,7 +337,46 @@
       lastAnnouncementSeen = run.lastAnnouncement.timestamp;
       showSplash(run.lastAnnouncement);
     }
+
+    if (!templateSetupDone && run.templateId) {
+      templateSetupDone = true;
+      setupTemplateBoundPanels(run.templateId);
+    }
   });
+
+  async function setupTemplateBoundPanels(templateId){
+    try {
+      const [templateSnap, pieces] = await Promise.all([
+        getDoc(doc(db, "live_templates", templateId)),
+        fetchAllPieceInfo()
+      ]);
+      const template = templateSnap.data();
+
+      // Left panel — this run's own live scoreboard, recalculated every time
+      // a response changes.
+      onSnapshot(collection(db, "live_runs", code, "responses"), (snap) => {
+        const rows = [];
+        snap.forEach(d => {
+          const r = d.data();
+          if (!r.firstName) return;
+          rows.push({ firstName: r.firstName, grade: r.grade, school: r.school, score: gradeResponse(r, template, pieces) });
+        });
+        rows.sort((a, b) => b.score - a.score);
+        renderPanelList(runScoreboardEl, rows, "No submissions yet.");
+      });
+
+      // Right panel — this Template's all-time leaderboard, across every run.
+      const lbQuery = query(collection(db, "live_templates", templateId, "leaderboard"), orderBy("bestScore", "desc"), limit(15));
+      onSnapshot(lbQuery, (snap) => {
+        const rows = [];
+        snap.forEach(d => { const r = d.data(); rows.push({ firstName: r.firstName, grade: r.grade, school: r.school, score: r.bestScore }); });
+        renderPanelList(globalLeaderboardEl, rows, "No scores posted for this template yet.");
+      });
+    } catch (err) {
+      globalLeaderboardEl.innerHTML = `<h2>Global Leaderboard</h2><p class="empty">Couldn't load: ${err.message}</p>`;
+    }
+  }
+
 
   if (code) {
     onSnapshot(collection(db, "live_runs", code, "responses"), (snap) => {
