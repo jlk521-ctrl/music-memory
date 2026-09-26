@@ -714,6 +714,18 @@
             }, { merge: true });
           }
 
+          // Also roll into this Template's own all-time leaderboard, which
+          // accumulates across every run of this same Template (any class
+          // period, any day) rather than just this one session.
+          const templateLbRef = doc(db, "live_templates", run.templateId, "leaderboard", slug);
+          const templateLbSnap = await getDoc(templateLbRef);
+          const templatePrevBest = templateLbSnap.exists() ? templateLbSnap.data().bestScore : undefined;
+          if (templatePrevBest === undefined || score > templatePrevBest) {
+            await setDoc(templateLbRef, {
+              firstName, grade, school, bestScore: score, bestCompletionMs: timeMs, updatedAt: Date.now()
+            }, { merge: true });
+          }
+
           // Rank against every approved student's current Live score,
           // including this student's own just-confirmed best.
           const allApprovedSnap = await getDocs(collection(db, "leaderboard_approved"));
