@@ -440,9 +440,15 @@
     document.getElementById("backBtn").addEventListener("click", () => { activeRunCode = null; renderRunsTab(); });
 
     if (idx >= 0) {
-      document.getElementById("playBtn").addEventListener("click", (e) => {
+      document.getElementById("playBtn").addEventListener("click", async (e) => {
         e.target.disabled = true;
         const seg = template.segments[currentPieceId];
+        if (idx === TOTAL_PIECES - 1) {
+          // Last track — record exactly when this playback starts, since
+          // the completion-time tie-breaker now measures from here, not
+          // from the very start of the whole run.
+          await updateDoc(doc(db, "live_runs", code), { lastTrackPlayedAt: Date.now() });
+        }
         playClip(pieces[currentPieceId].videoId, seg.start, () => { e.target.disabled = false; });
       });
     }
