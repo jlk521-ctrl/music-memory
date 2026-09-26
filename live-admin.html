@@ -478,6 +478,7 @@
         <h2 class="section-title">${run.label}</h2>
         <p>Join code: <span class="join-code">${code}</span></p>
         <p style="font-size:0.85rem;color:#8a7a63;">Scan to join instantly, or go to the Live Test page and enter the code above.</p>
+        <p><a href="https://jlk521-ctrl.github.io/music-memory/live-display.html?code=${code}" target="_blank" style="color:var(--navy-text);">Open Public Display &#8599;</a></p>
         ${idx < 0
           ? `<img src="${qrUrl}" alt="QR code to join this test" style="width:260px;height:260px;margin:0 auto 12px;display:block;">`
           : `<div class="track-badge">${idx + 1}</div>`
@@ -510,12 +511,14 @@
       document.getElementById("playBtn").addEventListener("click", async (e) => {
         e.target.disabled = true;
         const seg = template.segments[currentPieceId];
+        const updates = { currentPlayStartedAt: Date.now() };
         if (idx === TOTAL_PIECES - 1) {
           // Last track — record exactly when this playback starts, since
           // the completion-time tie-breaker now measures from here, not
           // from the very start of the whole run.
-          await updateDoc(doc(db, "live_runs", code), { lastTrackPlayedAt: Date.now() });
+          updates.lastTrackPlayedAt = Date.now();
         }
+        await updateDoc(doc(db, "live_runs", code), updates);
         startTrafficLight();
         playClip(pieces[currentPieceId].videoId, seg.start, () => { e.target.disabled = false; });
       });
@@ -643,7 +646,10 @@
             </div>
             <div class="score">${g.totalScore}</div>
             <button class="btn small secondary" data-action="toggle-details" data-idx="${gi}">View Details</button>
-            <button class="btn small" data-action="post" data-firstname="${g.firstName}" data-grade="${g.grade}" data-school="${g.school}" data-score="${g.totalScore}" data-time="${g.completionMs || 0}">Post to Leaderboard</button>
+            <label style="display:flex; align-items:center; gap:5px; font-size:0.82rem; color:#8a7a63;">
+              <input type="checkbox" data-action="approve-check" data-idx="${gi}"> Approved
+            </label>
+            <button class="btn small" data-action="post" disabled data-idx="${gi}" data-firstname="${g.firstName}" data-grade="${g.grade}" data-school="${g.school}" data-score="${g.totalScore}" data-time="${g.completionMs || 0}">Post to Leaderboard</button>
             <div class="detail-panel" id="detail-${gi}" style="display:none; width:100%; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(18,35,65,0.15);">
               ${template.order.map((pieceId, i) => {
                 const truth = pieces[pieceId];
@@ -682,6 +688,13 @@
       });
     });
 
+    content.querySelectorAll('[data-action="approve-check"]').forEach(cb => {
+      cb.addEventListener("change", () => {
+        const postBtn = content.querySelector(`[data-action="post"][data-idx="${cb.dataset.idx}"]`);
+        if (postBtn) postBtn.disabled = !cb.checked;
+      });
+    });
+
     content.querySelectorAll('[data-action="post"]').forEach(btn => {
       btn.addEventListener("click", async () => {
         const statusEl = document.getElementById("postStatus");
@@ -693,14 +706,32 @@
         try {
           const existing = await getDoc(doc(db, "leaderboard_approved", slug));
           const prevBest = existing.exists() ? existing.data().liveBestScore : undefined;
-          if (prevBest !== undefined && prevBest >= score) {
-            statusEl.textContent = `${firstName} already has a Live score of ${prevBest} \u2014 not overwritten with a lower/equal score.`;
-            return;
+          const finalScore = Math.max(score, prevBest ?? -1);
+
+          if (prevBest === undefined || score > prevBest) {
+            await setDoc(doc(db, "leaderboard_approved", slug), {
+              firstName, grade, school, liveBestScore: score, liveBestCompletionMs: timeMs, updatedAt: Date.now()
+            }, { merge: true });
           }
-          await setDoc(doc(db, "leaderboard_approved", slug), {
-            firstName, grade, school, liveBestScore: score, liveBestCompletionMs: timeMs, updatedAt: Date.now()
-          }, { merge: true });
-          statusEl.textContent = `Posted ${firstName}'s score of ${score} to the Live leaderboard.`;
+
+          // Rank against every approved student's current Live score,
+          // including this student's own just-confirmed best.
+          const allApprovedSnap = await getDocs(collection(db, "leaderboard_approved"));
+          let higherCount = 0;
+          allApprovedSnap.forEach(d => {
+            const other = d.data();
+            if (d.id === slug) return;
+            if (typeof other.liveBestScore === "number" && other.liveBestScore > finalScore) higherCount++;
+          });
+          const rank = higherCount + 1;
+
+          await updateDoc(doc(db, "live_runs", code), {
+            lastAnnouncement: { firstName, grade, school, score: finalScore, rank, timestamp: Date.now() }
+          });
+
+          statusEl.textContent = prevBest !== undefined && score <= prevBest
+            ? `Re-announced ${firstName}'s best score of ${finalScore} (rank ${rank}) on the display.`
+            : `Posted ${firstName}'s score of ${finalScore} (rank ${rank}) and announced it on the display.`;
         } catch (err) {
           statusEl.textContent = "Couldn't post: " + err.message;
         }
