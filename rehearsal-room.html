@@ -349,6 +349,36 @@
       .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // strip accents (ü->u, ë->e, etc.)
   }
 
+  function levenshtein(a, b){
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++){
+      for (let j = 1; j <= n; j++){
+        dp[i][j] = a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
+    }
+    return dp[m][n];
+  }
+
+  // Matches UIL's own scoring standard: full credit for an exact answer,
+  // half credit for "correct but misspelled," zero for wrong or blank.
+  // "Misspelled" is approximated here as a small edit-distance relative to
+  // the answer's length — a reasonable stand-in for the judgment call a
+  // human grader would make, though not a perfect substitute for one.
+  function gradeMatch(guessRaw, truthRaw){
+    const guess = norm(guessRaw), truth = norm(truthRaw);
+    if (truth === "") return guess === "" ? 1 : 0; // should-be-blank fields are all-or-nothing
+    if (guess === "") return 0; // blank never earns credit
+    if (guess === truth) return 1;
+    const dist = levenshtein(guess, truth);
+    const threshold = Math.max(1, Math.round(truth.length * 0.2));
+    return dist <= threshold ? 0.5 : 0;
+  }
+
   /* ============================================
      YOUTUBE PLAYER (hidden, official IFrame API)
      ============================================ */
@@ -729,18 +759,18 @@
     if (run.mode === "official") {
       let trackScore = 0;
       const fieldCorrect = {};
+      const fieldCredit = {};
       fields.forEach(f => {
         const truthVal = track.truth[f];
-        // A blank truth (no separate movement) is correctly answered by
-        // leaving it blank; typing anything there is marked wrong.
-        const isCorrect = truthVal === "" ? norm(guesses[f]) === "" : norm(guesses[f]) === norm(truthVal);
-        fieldCorrect[f] = isCorrect;
-        if (isCorrect) trackScore += OFFICIAL_POINTS_PER_FIELD;
+        const credit = gradeMatch(guesses[f], truthVal); // 1 = correct, 0.5 = misspelled, 0 = wrong/blank
+        fieldCredit[f] = credit;
+        fieldCorrect[f] = credit === 1;
+        trackScore += credit * OFFICIAL_POINTS_PER_FIELD;
       });
       trackScore = Math.ceil(trackScore);
       trackScore = Math.max(0, trackScore - Math.max(0, track.replays) * OFFICIAL_REPLAY_COST);
       const allCorrect = fields.every(f => fieldCorrect[f]);
-      return { guesses, correct: allCorrect, fieldCorrect, trackScore, revealedTotal: 0, replays: track.replays };
+      return { guesses, correct: allCorrect, fieldCorrect, fieldCredit, trackScore, revealedTotal: 0, replays: track.replays };
     } else {
       const allCorrect = fields.every(f => norm(guesses[f]) === norm(track.truth[f]));
       const revealedTotal = revealedTotalForScoring(fields);
@@ -803,12 +833,18 @@
           </div>
         `;
       }
+      const creditNote = (f) => {
+        if (!r.fieldCredit) return "";
+        if (r.fieldCredit[f] === 0.5) return " (misspelled \u2014 half credit)";
+        if (r.fieldCredit[f] === 0) return "";
+        return "";
+      };
       return `
         <div class="result-row">
           <span class="mark ${r.correct ? 'correct' : 'incorrect'}">${r.correct ? '&#10003;' : '&#10007;'}</span>
           <div class="body">
             <strong>${r.truth.composer}</strong> &mdash; ${r.truth.majorWork}${r.truth.selectionTitle ? ` (${r.truth.selectionTitle})` : ""}<br>
-            ${!r.correct ? `<span style="color:var(--bad);font-size:0.85rem;">Your answers: ${r.guesses.composer || "(blank)"} / ${r.guesses.majorWork || "(blank)"}${("selectionTitle" in r.guesses) ? ` / ${r.guesses.selectionTitle || "(blank)"}` : ""}</span>` : ""}
+            ${!r.correct ? `<span style="color:var(--bad);font-size:0.85rem;">Your answers: ${r.guesses.composer || "(blank)"}${creditNote("composer")} / ${r.guesses.majorWork || "(blank)"}${creditNote("majorWork")}${("selectionTitle" in r.guesses) ? ` / ${r.guesses.selectionTitle || "(blank)"}${creditNote("selectionTitle")}` : ""}</span>` : ""}
           </div>
           <span class="points">${r.trackScore} pts</span>
         </div>
