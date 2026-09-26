@@ -298,6 +298,14 @@
     "McGill", "Reagan", "San Jacinto", "Santa Rita"
   ];
 
+  function formatMs(ms){
+    if (ms === undefined || ms === null) return "";
+    const totalSeconds = Math.floor(ms / 1000);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
+
   function slugify(firstName, grade, school){
     const clean = s => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
     return `${clean(firstName)}_${clean(grade)}_${clean(school)}`;
@@ -450,7 +458,7 @@
         ${rows.map(r => `
           <li>
             <span class="lb-name">${r.firstName}</span>
-            <span class="lb-meta">${r.grade} \u00b7 ${r.school}</span>
+            <span class="lb-meta">${r.grade} \u00b7 ${r.school} \u00b7 ${formatMs(r.bestTimeMs)}</span>
             <span class="lb-score">${r.bestScore}</span>
           </li>
         `).join("")}
