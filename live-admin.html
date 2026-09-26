@@ -221,6 +221,7 @@
       </div>
       <div class="card">
         <h2 class="section-title">Build a New Template</h2>
+        <button class="btn small" id="randomizeBtn" style="margin-bottom:14px;">Randomize Order, Segments &amp; Name</button>
         <input type="text" id="templateName" placeholder="Template name (e.g. 'Fall Test A')" style="width:100%;padding:8px;margin-bottom:14px;border:1px solid rgba(18,35,65,0.25);border-radius:4px;">
         <p style="font-size:0.85rem;color:#8a7a63;margin-bottom:10px;">Drag to reorder. Segment start/end are pre-filled from the practice data — adjust to lock in exact seconds for this template.</p>
         <ul class="order-list" id="orderList"></ul>
@@ -240,6 +241,23 @@
     // Build the draggable order list, starting in piece-ID order 1..10
     let workingOrder = Array.from({length: TOTAL_PIECES}, (_, i) => String(i + 1));
     renderOrderList(workingOrder, pieces);
+
+    document.getElementById("randomizeBtn").addEventListener("click", () => {
+      const shuffled = Array.from({length: TOTAL_PIECES}, (_, i) => String(i + 1));
+      for (let i = shuffled.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const randomizedPieces = {};
+      Object.keys(pieces).forEach(id => {
+        const p = pieces[id];
+        const latestStart = Math.max(p.musicStart, p.musicEnd - CLIP_SECONDS);
+        const start = latestStart <= p.musicStart ? p.musicStart : Math.floor(p.musicStart + Math.random() * (latestStart - p.musicStart));
+        randomizedPieces[id] = { ...p, musicStart: start, musicEnd: start + CLIP_SECONDS };
+      });
+      renderOrderList(shuffled, randomizedPieces);
+      document.getElementById("templateName").value = suggestedTemplateName();
+    });
 
     document.getElementById("saveTemplateBtn").addEventListener("click", async () => {
       const name = document.getElementById("templateName").value.trim();
@@ -305,6 +323,19 @@
   /* ============================================
      RUNS TAB
      ============================================ */
+  function ordinal(n){
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
+
+  function suggestedTemplateName(){
+    const now = new Date();
+    const weekOfMonth = Math.ceil(now.getDate() / 7);
+    const monthName = now.toLocaleString("default", { month: "long" });
+    return `${ordinal(weekOfMonth)} Week of ${monthName}`;
+  }
+
   function generateJoinCode(){
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no O/0/I/1 to avoid confusion
     let code = "";
