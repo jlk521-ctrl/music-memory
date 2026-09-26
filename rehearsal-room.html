@@ -386,6 +386,11 @@
       : { score: "unofficialBestScore", time: "unofficialBestCompletionMs" };
   }
 
+  // In-memory cache, keyed by mode. Fetched once per page load; toggling
+  // modes or re-rendering the sidebar reuses this instead of re-querying
+  // Firestore. Only a real page refresh clears it.
+  const leaderboardCache = { official: null, unofficial: null };
+
   async function fetchLeaderboardTop(n, mode){
     try {
       const { score } = scoreFieldFor(mode);
@@ -405,12 +410,29 @@
     }
   }
 
+  // Updates the cached leaderboard in memory only — no Firestore read.
+  // Called right after a successful submission so the sidebar reflects the
+  // new score immediately without spending a read to confirm what we just
+  // wrote ourselves.
+  function upsertLocalLeaderboard(mode, entry){
+    const cache = leaderboardCache[mode];
+    if (!cache) return; // nothing cached yet — next real fetch will pick it up
+    const idx = cache.findIndex(r => r.firstName === entry.firstName && r.grade === entry.grade && r.school === entry.school);
+    if (idx >= 0) { cache[idx] = entry; } else { cache.push(entry); }
+    cache.sort((a, b) => b.bestScore - a.bestScore);
+    if (cache.length > 30) cache.length = 30;
+  }
+
   async function renderLeaderboardSidebarInto(containerId, mode){
     const el = document.getElementById(containerId);
     if (!el) return;
     const title = mode === "official" ? "Official Leaderboard" : "Unofficial Leaderboard";
-    el.innerHTML = `<p class="lb-loading">Loading leaderboard\u2026</p>`;
-    const rows = await fetchLeaderboardTop(30, mode);
+    let rows = leaderboardCache[mode];
+    if (rows === null) {
+      el.innerHTML = `<p class="lb-loading">Loading leaderboard\u2026</p>`;
+      rows = await fetchLeaderboardTop(30, mode);
+      leaderboardCache[mode] = rows;
+    }
     if (!rows) { el.innerHTML = ""; return; }
     if (rows.length === 0) {
       el.innerHTML = `<h3 class="lb-title">${title}</h3><p class="lb-empty">No approved scores yet \u2014 be the first!</p>`;
@@ -840,6 +862,7 @@
                 updatedAt: Date.now()
               }, { merge: true });
               statusEl.textContent = "New best score posted to the leaderboard!";
+              upsertLocalLeaderboard(run.mode, { firstName, grade, school, bestScore: totalScore });
               renderLeaderboardSidebarInto("lbSidebarResults", run.mode);
             } else {
               statusEl.textContent = `You're already on the leaderboard with a score of ${existingModeScore} \u2014 keep that one!`;
