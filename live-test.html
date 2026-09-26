@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>Live Testing Admin — Music Memory</title>
+<title>Live Test — Music Memory</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   :root{
     --navy:#122341; --navy-deep:#0a1526; --navy-text:#1d5099;
-    --parchment:#f2efe6; --orange:#d97e2c; --orange-bright:#f0b83e;
-    --ink:#1c1712; --good:#2f6b4a; --bad:#b3402f;
+    --parchment:#f2efe6; --parchment-dim:#e6e0cf; --orange:#d97e2c; --orange-bright:#f0b83e;
+    --ink:#1c1712; --accent-muted:#8a5a2b; --good:#2f6b4a; --bad:#b3402f;
     --display:'Fraunces', serif; --body:'Libre Caslon Text', serif;
   }
   *{ box-sizing:border-box; }
@@ -21,81 +21,57 @@
   button{ font-family:var(--body); cursor:pointer; }
   input, select{ font-family:var(--body); }
 
-  .hero{ background:linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%); color:var(--parchment); padding:36px 24px; text-align:center; }
-  .hero h1{ font-family:var(--display); font-style:italic; font-weight:600; margin:0 0 4px; font-size:1.8rem; }
-  .hero p{ margin:0; color:rgba(241,231,208,0.75); font-size:0.9rem; }
+  .hero{
+    background:linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color:var(--parchment); padding:44px 24px; text-align:center;
+  }
+  .hero h1{ font-family:var(--display); font-style:italic; font-weight:600; margin:0 0 6px; font-size:2rem; }
+  .hero p{ margin:0; color:rgba(241,231,208,0.78); font-size:0.92rem; }
 
-  main{ max-width:900px; margin:0 auto; padding:32px 20px 60px; }
-  .card{ background:#fff; border:1px solid rgba(18,35,65,0.12); border-radius:6px; padding:22px; margin-bottom:24px; box-shadow:0 14px 30px -18px rgba(0,0,0,0.25); }
-  .login-card{ max-width:360px; margin:60px auto; text-align:center; }
-  .btn{ background:var(--navy); color:var(--parchment); border:none; padding:10px 22px; border-radius:30px; font-size:0.9rem; }
+  main{ max-width:820px; margin:0 auto; padding:32px 20px 60px; }
+  .card{ background:#fff; border:1px solid rgba(18,35,65,0.12); border-radius:6px; padding:22px; margin-bottom:20px; box-shadow:0 14px 30px -18px rgba(0,0,0,0.25); }
+  .btn{ background:var(--navy); color:var(--parchment); border:none; padding:12px 26px; border-radius:30px; font-size:0.95rem; }
   .btn:hover{ background:var(--navy-deep); }
-  .btn.danger{ background:var(--bad); }
-  .btn.secondary{ background:transparent; color:var(--navy); border:1px solid var(--navy); }
-  .btn.small{ padding:6px 14px; font-size:0.82rem; }
   .btn:disabled{ opacity:0.5; cursor:default; }
-  h2.section-title{ font-family:var(--display); font-style:italic; color:var(--navy-text); font-size:1.3rem; margin:0 0 14px; }
-  #signoutBar{ display:flex; justify-content:flex-end; padding:12px 20px 0; max-width:900px; margin:0 auto; }
-  .status-msg{ font-size:0.85rem; color:#8a7a63; margin-top:8px; }
 
-  .tabs{ display:flex; gap:8px; margin-bottom:20px; }
-  .tab-btn{ background:#fff; border:1px solid rgba(18,35,65,0.2); padding:8px 18px; border-radius:20px; font-size:0.88rem; }
-  .tab-btn.active{ background:var(--navy); color:var(--parchment); border-color:var(--navy); }
+  .join-card{ max-width:360px; margin:40px auto; text-align:center; }
+  .join-card input{ width:100%; padding:12px; margin-bottom:12px; border:1px solid rgba(18,35,65,0.25); border-radius:4px; font-size:1.2rem; text-align:center; text-transform:uppercase; letter-spacing:0.15em; }
 
-  /* Drag-and-drop order list */
-  .order-list{ list-style:none; margin:0 0 16px; padding:0; }
-  .order-item{
-    display:flex; align-items:center; gap:10px;
-    background:var(--parchment); border:1px solid rgba(18,35,65,0.15); border-radius:4px;
-    padding:10px 12px; margin-bottom:6px; cursor:grab;
-  }
-  .order-item.dragging{ opacity:0.4; }
-  .order-item .handle{ color:#8a7a63; font-size:1.1rem; }
-  .order-item .piece-name{ flex-grow:1; font-weight:700; }
-  .order-item input[type=number]{ width:64px; padding:4px 6px; border:1px solid rgba(18,35,65,0.25); border-radius:4px; }
-  .order-item label{ font-size:0.75rem; color:#8a7a63; }
+  .id-card{ display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+  .id-card input, .id-card select{ flex:1; min-width:140px; padding:10px; border:1px solid rgba(18,35,65,0.25); border-radius:4px; }
 
-  .template-row, .run-row{
-    display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(18,35,65,0.1); flex-wrap:wrap;
-  }
-  .template-row:last-child, .run-row:last-child{ border-bottom:none; }
-  .template-row .info, .run-row .info{ flex-grow:1; }
-  .join-code{ font-family:var(--display); font-style:italic; font-size:1.6rem; color:var(--orange); letter-spacing:0.1em; }
+  .status-banner{ text-align:center; font-family:var(--display); font-style:italic; color:var(--navy-text); font-size:1.1rem; margin-bottom:6px; }
+  .sync-status{ text-align:center; font-size:0.78rem; color:#8a7a63; margin-bottom:20px; }
+  .sync-status.offline{ color:var(--bad); }
 
-  .live-control{ text-align:center; }
-  .track-badge{ font-family:var(--display); font-style:italic; font-size:1.6rem; color:var(--navy); background:#efe9da; border-radius:50%; width:70px; height:70px; line-height:70px; margin:0 auto 12px; }
-  .play-btn{ background:var(--navy); color:var(--parchment); border:none; padding:14px 28px; border-radius:30px; font-size:1rem; margin-bottom:10px; }
-  .play-btn:disabled{ opacity:0.5; }
+  .track-block{ padding:16px 0; border-bottom:1px solid rgba(18,35,65,0.1); }
+  .track-block:last-child{ border-bottom:none; }
+  .track-block .num{ font-family:var(--display); font-style:italic; color:var(--orange); font-size:1.15rem; margin-bottom:8px; display:block; }
+  .track-block .fields{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  @media (max-width:640px){ .track-block .fields{ grid-template-columns:1fr; } }
+  .track-block label{ display:block; font-size:0.75rem; color:var(--accent-muted); font-weight:700; margin-bottom:4px; }
+  .track-block input{ width:100%; padding:8px; border:1px solid rgba(18,35,65,0.25); border-radius:4px; background:var(--parchment); }
 
-  .results-row{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid rgba(18,35,65,0.1); font-size:0.88rem; }
-  .results-row .mark.correct{ color:var(--good); }
-  .results-row .mark.incorrect{ color:var(--bad); }
-  .results-row .score{ font-family:var(--display); font-style:italic; color:var(--orange); min-width:50px; text-align:right; }
+  .submit-bar{ text-align:center; margin-top:20px; }
+  .submitted-banner{ text-align:center; font-family:var(--display); font-style:italic; color:var(--good); font-size:1.3rem; padding:30px; }
+
+  footer{ background:var(--navy-deep); color:rgba(241,231,208,0.6); text-align:center; padding:24px; font-size:0.85rem; }
 </style>
 </head>
 <body>
 
 <header class="hero">
-  <h1>Live Testing Admin</h1>
-  <p>Build templates, run live sessions, review and post results</p>
+  <h1>Live Test</h1>
+  <p>Listen along with the room, then fill in what you remember below.</p>
 </header>
 
-<div id="signoutBar"></div>
 <main id="app"></main>
 
-<div id="ytHolder" style="position:fixed; top:-9999px; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none;">
-  <div id="ytPlayer"></div>
-</div>
+<footer>UIL A+ Music Memory &middot; Live Test</footer>
 
-<script>
-  window.ytApiReady = false;
-  window.onYouTubeIframeAPIReady = function(){ window.ytApiReady = true; };
-</script>
-<script src="https://www.youtube.com/iframe_api"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { initializeFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, collection, query, orderBy } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+  import { initializeFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC1buaseorV5ZMvicSbYrzx3tz7_tos_wQ",
@@ -107,487 +83,200 @@
   };
   const app = initializeApp(firebaseConfig);
   const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
-  const auth = getAuth(app);
-  const googleProvider = new GoogleAuthProvider();
-
-  const ADMIN_EMAILS = ["jonathan.ochoa@saisd.org", "jlk521@gmail.com"];
 
   const TOTAL_PIECES = 10;
-  const CLIP_SECONDS = 20;
-  const OFFICIAL_POINTS_PER_FIELD = 33.33;
+  const GRADE_OPTIONS = ["2nd Grade", "3rd Grade", "4th Grade", "5th Grade", "Teacher"];
+  const SCHOOL_OPTIONS = [
+    "Belaire", "Bonham", "Bowie", "Bradford", "Crockett", "Fannin",
+    "Fort Concho", "Glenmore", "Goliad", "Holiman", "Lamar",
+    "McGill", "Reagan", "San Jacinto", "Santa Rita"
+  ];
 
   const appEl = document.getElementById("app");
-  const signoutBarEl = document.getElementById("signoutBar");
 
   /* ============================================
-     AUTH
+     LOCAL STORAGE — the source of truth for "did I lose my answer"
      ============================================ */
-  onAuthStateChanged(auth, (user) => {
-    if (user && ADMIN_EMAILS.includes(user.email)) {
-      signoutBarEl.innerHTML = `<span style="font-size:0.85rem;color:#8a7a63;margin-right:10px;align-self:center;">Signed in as ${user.email}</span><button class="btn small" id="signOutBtn">Sign Out</button>`;
-      document.getElementById("signOutBtn").addEventListener("click", () => signOut(auth));
-      renderTabs();
-    } else if (user) {
-      signoutBarEl.innerHTML = "";
-      appEl.innerHTML = `<div class="card login-card"><h2 class="section-title">Not Authorized</h2><p class="status-msg">Signed in as ${user.email}, but this account isn't on the admin list.</p></div>`;
-      signOut(auth);
-    } else {
-      signoutBarEl.innerHTML = "";
-      renderLogin();
-    }
-  });
+  function localKey(code, studentId){ return `liveTest_${code}_${studentId}`; }
 
-  function renderLogin(){
+  function loadLocal(code, studentId){
+    try {
+      const raw = localStorage.getItem(localKey(code, studentId));
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function saveLocal(code, studentId, data){
+    try { localStorage.setItem(localKey(code, studentId), JSON.stringify(data)); }
+    catch (e) { /* storage full or unavailable — nothing more we can do client-side */ }
+  }
+
+  function getOrCreateStudentId(code){
+    const key = `liveTestStudentId_${code}`;
+    let id = localStorage.getItem(key);
+    if (!id) {
+      id = "s" + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem(key, id);
+    }
+    return id;
+  }
+
+  /* ============================================
+     JOIN SCREEN
+     ============================================ */
+  renderJoin();
+
+  function renderJoin(){
     appEl.innerHTML = `
-      <div class="card login-card">
-        <h2 class="section-title">Admin Sign In</h2>
-        <button class="btn" id="googleSignInBtn" style="width:100%;">Sign in with Google</button>
-        <p class="status-msg" id="loginStatus"></p>
+      <div class="card join-card">
+        <h2 style="font-family:var(--display);font-style:italic;color:var(--navy-text);">Enter Join Code</h2>
+        <input type="text" id="joinCode" placeholder="ABCDE" maxlength="8">
+        <button class="btn" id="joinBtn" style="width:100%;">Join</button>
+        <p class="sync-status" id="joinStatus"></p>
       </div>
     `;
-    document.getElementById("googleSignInBtn").addEventListener("click", async () => {
-      const statusEl = document.getElementById("loginStatus");
-      statusEl.textContent = "Opening Google sign-in\u2026";
-      try { await signInWithPopup(auth, googleProvider); }
-      catch (err) { statusEl.textContent = "Sign-in failed: " + err.message; }
-    });
+    document.getElementById("joinBtn").addEventListener("click", attemptJoin);
+    document.getElementById("joinCode").addEventListener("keydown", (e) => { if (e.key === "Enter") attemptJoin(); });
   }
 
-  /* ============================================
-     TABS
-     ============================================ */
-  let activeTab = "templates";
-  let activeRunCode = null;
-
-  function renderTabs(){
-    appEl.innerHTML = `
-      <div class="tabs">
-        <button class="tab-btn ${activeTab === 'templates' ? 'active' : ''}" data-tab="templates">Templates</button>
-        <button class="tab-btn ${activeTab === 'runs' ? 'active' : ''}" data-tab="runs">Runs</button>
-      </div>
-      <div id="tabContent"></div>
-    `;
-    appEl.querySelectorAll(".tab-btn").forEach(btn => {
-      btn.addEventListener("click", () => { activeTab = btn.dataset.tab; renderTabs(); });
-    });
-    if (activeTab === "templates") renderTemplatesTab();
-    else renderRunsTab();
-  }
-
-  /* ============================================
-     PIECE DATA (for building templates)
-     ============================================ */
-  async function fetchAllPieceInfo(){
-    const [composerSnap, titleSnap, audioSnap] = await Promise.all([
-      getDocs(collection(db, "pieces_composer")),
-      getDocs(collection(db, "pieces_titles")),
-      getDocs(collection(db, "pieces_audio"))
-    ]);
-    const composers = {}, titles = {}, audio = {};
-    composerSnap.forEach(d => composers[d.id] = d.data().composer);
-    titleSnap.forEach(d => titles[d.id] = d.data());
-    audioSnap.forEach(d => audio[d.id] = d.data());
-    const pieces = {};
-    for (let i = 1; i <= TOTAL_PIECES; i++){
-      const id = String(i);
-      pieces[id] = { composer: composers[id], majorWork: titles[id]?.majorWork, selectionTitle: titles[id]?.selectionTitle || "", videoId: audio[id]?.videoId, musicStart: audio[id]?.musicStart || 0, musicEnd: audio[id]?.musicEnd || CLIP_SECONDS };
+  async function attemptJoin(){
+    const code = document.getElementById("joinCode").value.trim().toUpperCase();
+    const statusEl = document.getElementById("joinStatus");
+    if (!code) { statusEl.textContent = "Enter the code your teacher gave you."; return; }
+    statusEl.textContent = "Joining\u2026";
+    try {
+      const runSnap = await getDoc(doc(db, "live_runs", code));
+      if (!runSnap.exists()) { statusEl.textContent = "That code wasn't found. Check with your teacher."; return; }
+      enterTest(code);
+    } catch (err) {
+      statusEl.textContent = "Couldn't join: " + err.message;
     }
-    return pieces;
   }
 
   /* ============================================
-     TEMPLATES TAB
+     THE TEST ITSELF
      ============================================ */
-  async function renderTemplatesTab(){
-    const content = document.getElementById("tabContent");
-    content.innerHTML = `<div class="card"><p class="status-msg">Loading\u2026</p></div>`;
+  function enterTest(code){
+    const studentId = getOrCreateStudentId(code);
+    let local = loadLocal(code, studentId) || {
+      firstName: "", grade: "", school: "",
+      answers: Array.from({length: TOTAL_PIECES}, () => ({ composer: "", majorWork: "", selectionTitle: "" })),
+      submitted: false, completionMs: null
+    };
 
-    const pieces = await fetchAllPieceInfo();
-    let templatesSnap;
-    try { templatesSnap = await getDocs(collection(db, "live_templates")); }
-    catch (err) { content.innerHTML = `<div class="card"><p class="status-msg">Couldn't load templates: ${err.message}</p></div>`; return; }
-    const templates = [];
-    templatesSnap.forEach(d => templates.push({ id: d.id, ...d.data() }));
+    let currentTrackIndex = -1;
+    let lastTrackPlayedAt = null;
+    let lastSyncedAt = 0;
+    let syncTimer = null;
 
-    content.innerHTML = `
-      <div class="card">
-        <h2 class="section-title">Saved Templates</h2>
-        ${templates.length === 0 ? `<p class="status-msg">No templates yet — build one below.</p>` : templates.map(t => `
-          <div class="template-row">
-            <div class="info"><strong>${t.name}</strong> <span style="color:#8a7a63;font-size:0.85rem;">(${t.order.length} tracks)</span></div>
-            <button class="btn small danger" data-action="delete-template" data-id="${t.id}">Delete</button>
+    // Real-time listener — updates the "now playing" indicator as the
+    // teacher advances tracks, and detects when the run closes.
+    const unsubscribe = onSnapshot(doc(db, "live_runs", code), (snap) => {
+      if (!snap.exists()) return;
+      const run = snap.data();
+      currentTrackIndex = run.currentTrackIndex;
+      lastTrackPlayedAt = run.lastTrackPlayedAt || null;
+      const badge = document.getElementById("trackBadgeText");
+      if (badge) {
+        badge.textContent = run.status === "finished"
+          ? "Testing closed by your teacher"
+          : currentTrackIndex >= 0 ? `Now on Track ${currentTrackIndex + 1} of ${TOTAL_PIECES}` : "Waiting for your teacher to begin\u2026";
+      }
+      const submitBtn = document.getElementById("submitBtn");
+      if (submitBtn && run.status === "finished" && !local.submitted) {
+        submitBtn.textContent = "Testing closed \u2014 Submit Now";
+      }
+    });
+
+    render();
+
+    function render(){
+      if (local.submitted) {
+        appEl.innerHTML = `<div class="card submitted-banner">Answers submitted! You can close this page.</div>`;
+        return;
+      }
+
+      appEl.innerHTML = `
+        <div class="card">
+          <p class="status-banner" id="trackBadgeText">Waiting for your teacher to begin\u2026</p>
+          <p class="sync-status" id="syncStatus">Answers save to this device automatically.</p>
+          <div class="id-card">
+            <input type="text" id="firstName" placeholder="First name" value="${local.firstName}">
+            <select id="grade">
+              <option value="">Grade\u2026</option>
+              ${GRADE_OPTIONS.map(g => `<option value="${g}" ${local.grade === g ? "selected" : ""}>${g}</option>`).join("")}
+            </select>
+            <select id="school">
+              <option value="">School\u2026</option>
+              ${SCHOOL_OPTIONS.map(s => `<option value="${s}" ${local.school === s ? "selected" : ""}>${s}</option>`).join("")}
+            </select>
           </div>
-        `).join("")}
-      </div>
-      <div class="card">
-        <h2 class="section-title">Build a New Template</h2>
-        <button class="btn small" id="randomizeBtn" style="margin-bottom:14px;">Randomize Order, Segments &amp; Name</button>
-        <input type="text" id="templateName" placeholder="Template name (e.g. 'Fall Test A')" style="width:100%;padding:8px;margin-bottom:14px;border:1px solid rgba(18,35,65,0.25);border-radius:4px;">
-        <p style="font-size:0.85rem;color:#8a7a63;margin-bottom:10px;">Drag to reorder. Segment start/end are pre-filled from the practice data — adjust to lock in exact seconds for this template.</p>
-        <ul class="order-list" id="orderList"></ul>
-        <button class="btn" id="saveTemplateBtn">Save Template</button>
-        <p class="status-msg" id="templateStatus"></p>
-      </div>
-    `;
+          ${Array.from({length: TOTAL_PIECES}, (_, i) => `
+            <div class="track-block">
+              <span class="num">${i + 1}.</span>
+              <div class="fields">
+                <div><label>Composer</label><input type="text" data-track="${i}" data-field="composer" value="${local.answers[i].composer}"></div>
+                <div><label>Major Work</label><input type="text" data-track="${i}" data-field="majorWork" value="${local.answers[i].majorWork}"></div>
+                <div><label>Selection Title</label><input type="text" data-track="${i}" data-field="selectionTitle" value="${local.answers[i].selectionTitle}"></div>
+              </div>
+            </div>
+          `).join("")}
+          <div class="submit-bar">
+            <button class="btn" id="submitBtn">Submit Final Answers</button>
+          </div>
+        </div>
+      `;
 
-    content.querySelectorAll('[data-action="delete-template"]').forEach(btn => {
-      btn.addEventListener("click", async () => {
-        if (!confirm("Delete this template?")) return;
-        await deleteDoc(doc(db, "live_templates", btn.dataset.id));
-        renderTemplatesTab();
-      });
-    });
-
-    // Build the draggable order list, starting in piece-ID order 1..10
-    let workingOrder = Array.from({length: TOTAL_PIECES}, (_, i) => String(i + 1));
-    renderOrderList(workingOrder, pieces);
-
-    document.getElementById("randomizeBtn").addEventListener("click", () => {
-      const shuffled = Array.from({length: TOTAL_PIECES}, (_, i) => String(i + 1));
-      for (let i = shuffled.length - 1; i > 0; i--){
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      const randomizedPieces = {};
-      Object.keys(pieces).forEach(id => {
-        const p = pieces[id];
-        const latestStart = Math.max(p.musicStart, p.musicEnd - CLIP_SECONDS);
-        const start = latestStart <= p.musicStart ? p.musicStart : Math.floor(p.musicStart + Math.random() * (latestStart - p.musicStart));
-        randomizedPieces[id] = { ...p, musicStart: start, musicEnd: start + CLIP_SECONDS };
-      });
-      renderOrderList(shuffled, randomizedPieces);
-      document.getElementById("templateName").value = suggestedTemplateName();
-    });
-
-    document.getElementById("saveTemplateBtn").addEventListener("click", async () => {
-      const name = document.getElementById("templateName").value.trim();
-      const statusEl = document.getElementById("templateStatus");
-      if (!name) { statusEl.textContent = "Please name this template."; return; }
-      const segments = {};
-      document.querySelectorAll(".order-item").forEach(li => {
-        const id = li.dataset.id;
-        segments[id] = {
-          start: Number(li.querySelector('[data-field="start"]').value),
-          end: Number(li.querySelector('[data-field="end"]').value)
-        };
-      });
-      const finalOrder = Array.from(document.querySelectorAll(".order-item")).map(li => li.dataset.id);
-      statusEl.textContent = "Saving\u2026";
-      try {
-        await setDoc(doc(collection(db, "live_templates")), { name, order: finalOrder, segments, createdAt: Date.now() });
-        statusEl.textContent = "Saved!";
-        renderTemplatesTab();
-      } catch (err) {
-        statusEl.textContent = "Couldn't save: " + err.message;
-      }
-    });
-
-    function renderOrderList(order, pieces){
-      const listEl = document.getElementById("orderList");
-      listEl.innerHTML = order.map(id => `
-        <li class="order-item" draggable="true" data-id="${id}">
-          <span class="handle">\u2630</span>
-          <span class="piece-name">${pieces[id].composer} \u2014 ${pieces[id].majorWork}</span>
-          <label>Start <input type="number" data-field="start" value="${pieces[id].musicStart}"></label>
-          <label>End <input type="number" data-field="end" value="${pieces[id].musicEnd}"></label>
-        </li>
-      `).join("");
-      wireDragAndDrop(listEl);
-    }
-
-    function wireDragAndDrop(listEl){
-      let dragEl = null;
-      listEl.querySelectorAll(".order-item").forEach(item => {
-        item.addEventListener("dragstart", () => { dragEl = item; item.classList.add("dragging"); });
-        item.addEventListener("dragend", () => { item.classList.remove("dragging"); });
-        item.addEventListener("dragover", (e) => {
-          e.preventDefault();
-          const after = getDragAfterElement(listEl, e.clientY);
-          if (after == null) { listEl.appendChild(dragEl); }
-          else { listEl.insertBefore(dragEl, after); }
+      document.getElementById("firstName").addEventListener("input", (e) => { local.firstName = e.target.value; onChange(); });
+      document.getElementById("grade").addEventListener("change", (e) => { local.grade = e.target.value; onChange(); });
+      document.getElementById("school").addEventListener("change", (e) => { local.school = e.target.value; onChange(); });
+      appEl.querySelectorAll('input[data-track]').forEach(input => {
+        input.addEventListener("input", () => {
+          local.answers[input.dataset.track][input.dataset.field] = input.value;
+          onChange();
         });
       });
+      document.getElementById("submitBtn").addEventListener("click", submitFinal);
     }
 
-    function getDragAfterElement(container, y){
-      const items = [...container.querySelectorAll(".order-item:not(.dragging)")];
-      return items.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - box.top - box.height / 2;
-        if (offset < 0 && offset > closest.offset) { return { offset, element: child }; }
-        return closest;
-      }, { offset: -Infinity }).element;
-    }
-  }
-
-  /* ============================================
-     RUNS TAB
-     ============================================ */
-  function ordinal(n){
-    const s = ["th", "st", "nd", "rd"];
-    const v = n % 100;
-    return n + (s[(v - 20) % 10] || s[v] || s[0]);
-  }
-
-  function suggestedTemplateName(){
-    const now = new Date();
-    const weekOfMonth = Math.ceil(now.getDate() / 7);
-    const monthName = now.toLocaleString("default", { month: "long" });
-    return `${ordinal(weekOfMonth)} Week of ${monthName}`;
-  }
-
-  function generateJoinCode(){
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no O/0/I/1 to avoid confusion
-    let code = "";
-    for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
-    return code;
-  }
-
-  async function renderRunsTab(){
-    const content = document.getElementById("tabContent");
-    content.innerHTML = `<div class="card"><p class="status-msg">Loading\u2026</p></div>`;
-
-    let templatesSnap, runsSnap;
-    try {
-      [templatesSnap, runsSnap] = await Promise.all([
-        getDocs(collection(db, "live_templates")),
-        getDocs(query(collection(db, "live_runs"), orderBy("createdAt", "desc")))
-      ]);
-    } catch (err) {
-      content.innerHTML = `<div class="card"><p class="status-msg">Couldn't load: ${err.message}</p></div>`;
-      return;
-    }
-    const templates = [];
-    templatesSnap.forEach(d => templates.push({ id: d.id, ...d.data() }));
-    const runs = [];
-    runsSnap.forEach(d => runs.push({ id: d.id, ...d.data() }));
-
-    if (activeRunCode) { return renderLiveControl(activeRunCode); }
-
-    content.innerHTML = `
-      <div class="card">
-        <h2 class="section-title">Start a New Run</h2>
-        ${templates.length === 0 ? `<p class="status-msg">Build a template first.</p>` : `
-          <select id="templatePick" style="width:100%;padding:8px;margin-bottom:10px;">
-            ${templates.map(t => `<option value="${t.id}">${t.name}</option>`).join("")}
-          </select>
-          <input type="text" id="runLabel" placeholder="Label (e.g. 'Period 3, Oct 15')" style="width:100%;padding:8px;margin-bottom:10px;">
-          <button class="btn" id="startRunBtn">Create Run &amp; Get Join Code</button>
-        `}
-        <p class="status-msg" id="runStatus"></p>
-      </div>
-      <div class="card">
-        <h2 class="section-title">Existing Runs</h2>
-        ${runs.length === 0 ? `<p class="status-msg">No runs yet.</p>` : runs.map(r => `
-          <div class="run-row">
-            <div class="info"><strong>${r.label}</strong> <span style="color:#8a7a63;font-size:0.85rem;">${r.status} \u2014 code ${r.id}</span></div>
-            <button class="btn small" data-action="open-run" data-id="${r.id}">Open</button>
-          </div>
-        `).join("")}
-      </div>
-    `;
-
-    if (templates.length > 0) {
-      document.getElementById("startRunBtn").addEventListener("click", async () => {
-        const templateId = document.getElementById("templatePick").value;
-        const label = document.getElementById("runLabel").value.trim() || "Untitled Run";
-        const statusEl = document.getElementById("runStatus");
-        const code = generateJoinCode();
-        statusEl.textContent = "Creating\u2026";
-        try {
-          await setDoc(doc(db, "live_runs", code), {
-            templateId, label, status: "waiting", currentTrackIndex: -1, startedAt: null, createdAt: Date.now()
-          });
-          activeRunCode = code;
-          renderRunsTab();
-        } catch (err) {
-          statusEl.textContent = "Couldn't create run: " + err.message;
-        }
-      });
+    function onChange(){
+      saveLocal(code, studentId, local);
+      scheduleSync();
     }
 
-    content.querySelectorAll('[data-action="open-run"]').forEach(btn => {
-      btn.addEventListener("click", () => { activeRunCode = btn.dataset.id; renderRunsTab(); });
-    });
-  }
-
-  /* ============================================
-     LIVE CONTROL (a specific run, in progress)
-     ============================================ */
-  let ytPlayer = null, ytReady = false, playTimer = null;
-  function initYTPlayer(){
-    ytPlayer = new YT.Player("ytPlayer", {
-      height: "1", width: "1",
-      playerVars: { controls: 0, disablekb: 1, playsinline: 1 },
-      events: { onReady: () => { ytReady = true; } }
-    });
-  }
-  if (window.ytApiReady) { initYTPlayer(); } else { window.onYouTubeIframeAPIReady = initYTPlayer; }
-
-  function playClip(videoId, startSeconds, onDone){
-    if (!ytReady) { setTimeout(() => playClip(videoId, startSeconds, onDone), 300); return; }
-    clearTimeout(playTimer);
-    ytPlayer.loadVideoById({ videoId, startSeconds });
-    playTimer = setTimeout(() => { ytPlayer.pauseVideo(); if (onDone) onDone(); }, CLIP_SECONDS * 1000);
-  }
-
-  async function renderLiveControl(code){
-    const content = document.getElementById("tabContent");
-    content.innerHTML = `<div class="card"><p class="status-msg">Loading run\u2026</p></div>`;
-
-    const runSnap = await getDoc(doc(db, "live_runs", code));
-    if (!runSnap.exists()) { content.innerHTML = `<div class="card"><p class="status-msg">Run not found.</p><button class="btn" id="backBtn">Back</button></div>`; document.getElementById("backBtn").addEventListener("click", () => { activeRunCode = null; renderRunsTab(); }); return; }
-    const run = runSnap.data();
-    const templateSnap = await getDoc(doc(db, "live_templates", run.templateId));
-    const template = templateSnap.data();
-    const pieces = await fetchAllPieceInfo();
-
-    if (run.status === "finished") { return renderResultsReview(code, run, template, pieces); }
-
-    const idx = run.currentTrackIndex;
-    const currentPieceId = idx >= 0 ? template.order[idx] : null;
-
-    content.innerHTML = `
-      <div class="card live-control">
-        <h2 class="section-title">${run.label}</h2>
-        <p>Join code: <span class="join-code">${code}</span></p>
-        <p style="font-size:0.85rem;color:#8a7a63;">Students go to the Live Test page and enter this code.</p>
-        <div class="track-badge">${idx >= 0 ? idx + 1 : "\u2013"}</div>
-        <p>${idx >= 0 ? `Now playing: <strong>${pieces[currentPieceId].composer} \u2014 ${pieces[currentPieceId].majorWork}</strong> (hidden from students)` : "Not started yet"}</p>
-        <button class="play-btn" id="playBtn" ${idx < 0 ? "disabled" : ""}>Play Track ${idx >= 0 ? idx + 1 : ""}</button>
-        <div style="margin-top:14px;">
-          ${idx < 0
-            ? `<button class="btn" id="beginBtn">Begin Run (Track 1)</button>`
-            : idx < TOTAL_PIECES - 1
-              ? `<button class="btn" id="nextBtn">Next Track \u2192</button>`
-              : `<button class="btn" id="finishBtn">Finish Listening &amp; Close for Submissions</button>`
-          }
-        </div>
-        <p class="status-msg" id="controlStatus"></p>
-        <button class="btn secondary" id="backBtn" style="margin-top:16px;">Back to Runs</button>
-      </div>
-    `;
-
-    document.getElementById("backBtn").addEventListener("click", () => { activeRunCode = null; renderRunsTab(); });
-
-    if (idx >= 0) {
-      document.getElementById("playBtn").addEventListener("click", async (e) => {
-        e.target.disabled = true;
-        const seg = template.segments[currentPieceId];
-        if (idx === TOTAL_PIECES - 1) {
-          // Last track — record exactly when this playback starts, since
-          // the completion-time tie-breaker now measures from here, not
-          // from the very start of the whole run.
-          await updateDoc(doc(db, "live_runs", code), { lastTrackPlayedAt: Date.now() });
-        }
-        playClip(pieces[currentPieceId].videoId, seg.start, () => { e.target.disabled = false; });
-      });
+    function scheduleSync(){
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(syncToFirestore, 1500); // debounce — don't hammer Firestore on every keystroke
     }
 
-    if (idx < 0) {
-      document.getElementById("beginBtn").addEventListener("click", async () => {
-        await updateDoc(doc(db, "live_runs", code), { currentTrackIndex: 0, status: "active", startedAt: Date.now() });
-        renderLiveControl(code);
-      });
-    } else if (idx < TOTAL_PIECES - 1) {
-      document.getElementById("nextBtn").addEventListener("click", async () => {
-        await updateDoc(doc(db, "live_runs", code), { currentTrackIndex: idx + 1 });
-        renderLiveControl(code);
-      });
-    } else {
-      document.getElementById("finishBtn").addEventListener("click", async () => {
-        await updateDoc(doc(db, "live_runs", code), { status: "finished" });
-        renderLiveControl(code);
-      });
+    async function syncToFirestore(){
+      const statusEl = document.getElementById("syncStatus");
+      try {
+        await setDoc(doc(db, "live_runs", code, "responses", studentId), local, { merge: true });
+        lastSyncedAt = Date.now();
+        if (statusEl) { statusEl.textContent = "Saved to this device \u2014 and synced."; statusEl.classList.remove("offline"); }
+      } catch (err) {
+        if (statusEl) { statusEl.textContent = "Saved to this device \u2014 sync will retry (offline?)."; statusEl.classList.add("offline"); }
+        scheduleSync(); // keep retrying quietly in the background
+      }
     }
-  }
 
-  /* ============================================
-     RESULTS REVIEW & POST TO LEADERBOARD
-     ============================================ */
-  function norm(s){
-    return (s || "").trim().toLowerCase().replace(/\s+/g, " ")
-      .replace(/[\u2018\u2019\u02bc]/g, "'")
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  }
-
-  function slugFor(firstName, grade, school){
-    const clean = s => (s || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-    return `${clean(firstName)}_${clean(grade)}_${clean(school)}`;
-  }
-
-  async function renderResultsReview(code, run, template, pieces){
-    const content = document.getElementById("tabContent");
-    content.innerHTML = `<div class="card"><p class="status-msg">Loading responses\u2026</p></div>`;
-
-    const responsesSnap = await getDocs(collection(db, "live_runs", code, "responses"));
-    const responses = [];
-    responsesSnap.forEach(d => responses.push({ id: d.id, ...d.data() }));
-
-    const graded = responses.map(r => {
-      let total = 0;
-      const perTrack = template.order.map((pieceId, i) => {
-        const truth = pieces[pieceId];
-        const ans = (r.answers && r.answers[i]) || {};
-        const composerOk = norm(ans.composer) === norm(truth.composer);
-        const majorOk = norm(ans.majorWork) === norm(truth.majorWork);
-        const selTruth = truth.selectionTitle || "";
-        const selOk = selTruth === "" ? norm(ans.selectionTitle) === "" : norm(ans.selectionTitle) === norm(selTruth);
-        let trackScore = 0;
-        if (composerOk) trackScore += OFFICIAL_POINTS_PER_FIELD;
-        if (majorOk) trackScore += OFFICIAL_POINTS_PER_FIELD;
-        if (selOk) trackScore += OFFICIAL_POINTS_PER_FIELD;
-        trackScore = Math.ceil(trackScore);
-        total += trackScore;
-        return { composerOk, majorOk, selOk, trackScore };
-      });
-      return { ...r, perTrack, totalScore: total };
-    });
-    graded.sort((a, b) => b.totalScore - a.totalScore);
-
-    content.innerHTML = `
-      <div class="card">
-        <h2 class="section-title">${run.label} \u2014 Results</h2>
-        ${graded.length === 0 ? `<p class="status-msg">No submissions yet.</p>` : graded.map(g => `
-          <div class="results-row" data-slug="${slugFor(g.firstName, g.grade, g.school)}">
-            <div style="flex-grow:1;">
-              <strong>${g.firstName || "(no name)"}</strong> \u2014 ${g.grade || "?"} \u00b7 ${g.school || "?"}
-              <div style="font-size:0.78rem;color:#8a7a63;">${g.perTrack.filter(t => t.trackScore === 100).length}/${TOTAL_PIECES} tracks perfect</div>
-            </div>
-            <div class="score">${g.totalScore}</div>
-            <button class="btn small" data-action="post" data-firstname="${g.firstName}" data-grade="${g.grade}" data-school="${g.school}" data-score="${g.totalScore}" data-time="${g.completionMs || 0}">Post to Leaderboard</button>
-          </div>
-        `).join("")}
-      </div>
-      <button class="btn secondary" id="backBtn">Back to Runs</button>
-      <p class="status-msg" id="postStatus"></p>
-    `;
-    document.getElementById("backBtn").addEventListener("click", () => { activeRunCode = null; renderRunsTab(); });
-
-    content.querySelectorAll('[data-action="post"]').forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const statusEl = document.getElementById("postStatus");
-        const firstName = btn.dataset.firstname, grade = btn.dataset.grade, school = btn.dataset.school;
-        const score = Number(btn.dataset.score), timeMs = Number(btn.dataset.time);
-        if (!firstName || !grade || !school) { statusEl.textContent = "Missing name/grade/school for this student — can't post."; return; }
-        const slug = slugFor(firstName, grade, school);
-        statusEl.textContent = "Posting\u2026";
-        try {
-          const existing = await getDoc(doc(db, "leaderboard_approved", slug));
-          const prevBest = existing.exists() ? existing.data().liveBestScore : undefined;
-          if (prevBest !== undefined && prevBest >= score) {
-            statusEl.textContent = `${firstName} already has a Live score of ${prevBest} \u2014 not overwritten with a lower/equal score.`;
-            return;
-          }
-          await setDoc(doc(db, "leaderboard_approved", slug), {
-            firstName, grade, school, liveBestScore: score, liveBestCompletionMs: timeMs, updatedAt: Date.now()
-          }, { merge: true });
-          statusEl.textContent = `Posted ${firstName}'s score of ${score} to the Live leaderboard.`;
-        } catch (err) {
-          statusEl.textContent = "Couldn't post: " + err.message;
-        }
-      });
-    });
+    async function submitFinal(){
+      local.submitted = true;
+      local.completionMs = lastTrackPlayedAt ? (Date.now() - lastTrackPlayedAt) : null;
+      saveLocal(code, studentId, local);
+      const btn = document.getElementById("submitBtn");
+      if (btn) { btn.disabled = true; btn.textContent = "Submitting\u2026"; }
+      try {
+        await setDoc(doc(db, "live_runs", code, "responses", studentId), local, { merge: true });
+      } catch (err) {
+        // Local copy is already saved and marked submitted — safe to show
+        // success; the periodic retry loop will finish the sync once the
+        // connection returns, since local.submitted is already true here.
+        scheduleSync();
+      }
+      render();
+    }
   }
 </script>
 
