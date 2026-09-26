@@ -128,7 +128,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { initializeFirestore, doc, getDoc, getDocs, onSnapshot, collection, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { initializeFirestore, doc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC1buaseorV5ZMvicSbYrzx3tz7_tos_wQ",
@@ -246,66 +246,9 @@
 
   const runScoreboardEl = document.getElementById("runScoreboard");
   const globalLeaderboardEl = document.getElementById("globalLeaderboard");
-  const OFFICIAL_POINTS_PER_FIELD = 33.33;
-
-  function norm(s){
-    return (s || "").trim().toLowerCase().replace(/\s+/g, " ")
-      .replace(/[\u2018\u2019\u02bc]/g, "'")
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  }
-
-  function levenshtein(a, b){
-    const m = a.length, n = b.length;
-    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
-    for (let i = 0; i <= m; i++) dp[i][0] = i;
-    for (let j = 0; j <= n; j++) dp[0][j] = j;
-    for (let i = 1; i <= m; i++){
-      for (let j = 1; j <= n; j++){
-        dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-      }
-    }
-    return dp[m][n];
-  }
-
-  function gradeMatch(guessRaw, truthRaw){
-    const guess = norm(guessRaw), truth = norm(truthRaw);
-    if (truth === "") return guess === "" ? 1 : 0;
-    if (guess === "") return 0;
-    if (guess === truth) return 1;
-    const dist = levenshtein(guess, truth);
-    const threshold = Math.max(1, Math.round(truth.length * 0.2));
-    return dist <= threshold ? 0.5 : 0;
-  }
-
-  async function fetchAllPieceInfo(){
-    const [composerSnap, titleSnap] = await Promise.all([
-      getDocs(collection(db, "pieces_composer")),
-      getDocs(collection(db, "pieces_titles"))
-    ]);
-    const composers = {}, titles = {};
-    composerSnap.forEach(d => composers[d.id] = d.data().composer);
-    titleSnap.forEach(d => titles[d.id] = d.data());
-    const pieces = {};
-    for (let i = 1; i <= TOTAL_PIECES; i++){
-      const id = String(i);
-      pieces[id] = { composer: composers[id], majorWork: titles[id]?.majorWork, selectionTitle: titles[id]?.selectionTitle || "" };
-    }
-    return pieces;
-  }
-
-  function gradeResponse(response, template, pieces){
-    let total = 0;
-    template.order.forEach((pieceId, i) => {
-      const truth = pieces[pieceId];
-      const ans = (response.answers && response.answers[i]) || {};
-      const credit = gradeMatch(ans.composer, truth.composer) + gradeMatch(ans.majorWork, truth.majorWork) + gradeMatch(ans.selectionTitle, truth.selectionTitle || "");
-      total += Math.ceil(credit * OFFICIAL_POINTS_PER_FIELD);
-    });
-    return total;
-  }
 
   function renderPanelList(el, rows, emptyMsg){
-    if (rows.length === 0) { el.querySelector("ol")?.remove(); if (!el.querySelector(".empty")) el.insertAdjacentHTML("beforeend", `<p class="empty">${emptyMsg}</p>`); return; }
+    if (!rows || rows.length === 0) { el.querySelector("ol")?.remove(); if (!el.querySelector(".empty")) el.insertAdjacentHTML("beforeend", `<p class="empty">${emptyMsg}</p>`); return; }
     el.querySelector(".empty")?.remove();
     let ol = el.querySelector("ol");
     if (!ol) { ol = document.createElement("ol"); el.appendChild(ol); }
@@ -321,7 +264,7 @@
     `).join("");
   }
 
-  let templateSetupDone = false;
+  let lastRunScoreboardSeen = null, lastGlobalLeaderboardSeen = null;
 
   onSnapshot(doc(db, "live_runs", code), (snap) => {
     if (!snap.exists()) return;
@@ -338,44 +281,17 @@
       showSplash(run.lastAnnouncement);
     }
 
-    if (!templateSetupDone && run.templateId) {
-      templateSetupDone = true;
-      setupTemplateBoundPanels(run.templateId);
+    // Both panels are populated only when the admin explicitly retrieves
+    // results — never a live/continuous read of raw student answers.
+    if (JSON.stringify(run.publishedRunScoreboard) !== lastRunScoreboardSeen) {
+      lastRunScoreboardSeen = JSON.stringify(run.publishedRunScoreboard);
+      renderPanelList(runScoreboardEl, run.publishedRunScoreboard, "Waiting for the teacher to retrieve results\u2026");
+    }
+    if (JSON.stringify(run.publishedGlobalLeaderboard) !== lastGlobalLeaderboardSeen) {
+      lastGlobalLeaderboardSeen = JSON.stringify(run.publishedGlobalLeaderboard);
+      renderPanelList(globalLeaderboardEl, run.publishedGlobalLeaderboard, "Waiting for the teacher to retrieve results\u2026");
     }
   });
-
-  async function setupTemplateBoundPanels(templateId){
-    try {
-      const [templateSnap, pieces] = await Promise.all([
-        getDoc(doc(db, "live_templates", templateId)),
-        fetchAllPieceInfo()
-      ]);
-      const template = templateSnap.data();
-
-      // Left panel — this run's own live scoreboard, recalculated every time
-      // a response changes.
-      onSnapshot(collection(db, "live_runs", code, "responses"), (snap) => {
-        const rows = [];
-        snap.forEach(d => {
-          const r = d.data();
-          if (!r.firstName) return;
-          rows.push({ firstName: r.firstName, grade: r.grade, school: r.school, score: gradeResponse(r, template, pieces) });
-        });
-        rows.sort((a, b) => b.score - a.score);
-        renderPanelList(runScoreboardEl, rows, "No submissions yet.");
-      });
-
-      // Right panel — this Template's all-time leaderboard, across every run.
-      const lbQuery = query(collection(db, "live_templates", templateId, "leaderboard"), orderBy("bestScore", "desc"), limit(15));
-      onSnapshot(lbQuery, (snap) => {
-        const rows = [];
-        snap.forEach(d => { const r = d.data(); rows.push({ firstName: r.firstName, grade: r.grade, school: r.school, score: r.bestScore }); });
-        renderPanelList(globalLeaderboardEl, rows, "No scores posted for this template yet.");
-      });
-    } catch (err) {
-      globalLeaderboardEl.innerHTML = `<h2>Global Leaderboard</h2><p class="empty">Couldn't load: ${err.message}</p>`;
-    }
-  }
 
 
   if (code) {
