@@ -265,6 +265,7 @@
   }
 
   let lastRunScoreboardSeen = null, lastGlobalLeaderboardSeen = null;
+  let isFirstSnapshot = true;
 
   onSnapshot(doc(db, "live_runs", code), (snap) => {
     if (!snap.exists()) return;
@@ -276,10 +277,16 @@
 
     updateTrafficLight(run.status === "active" && run.currentPlayStartedAt ? run.currentPlayStartedAt : null);
 
-    if (run.lastAnnouncement && run.lastAnnouncement.timestamp !== lastAnnouncementSeen) {
+    if (isFirstSnapshot) {
+      // On first load, just record whatever announcement already exists —
+      // don't replay it. Only genuinely NEW announcements after this point
+      // should trigger a splash.
+      lastAnnouncementSeen = run.lastAnnouncement ? run.lastAnnouncement.timestamp : null;
+    } else if (run.lastAnnouncement && run.lastAnnouncement.timestamp !== lastAnnouncementSeen) {
       lastAnnouncementSeen = run.lastAnnouncement.timestamp;
       showSplash(run.lastAnnouncement);
     }
+    isFirstSnapshot = false;
 
     // Both panels are populated only when the admin explicitly retrieves
     // results — never a live/continuous read of raw student answers.
