@@ -102,7 +102,7 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { initializeFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { initializeFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
   const firebaseConfig = {
@@ -638,6 +638,11 @@
     content.innerHTML = `
       <div class="card">
         <h2 class="section-title">${run.label} \u2014 Results</h2>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+          <button class="btn small" id="retrieveRunBtn">Retrieve Current Run Scores \u2192 Display</button>
+          <button class="btn small" id="retrieveGlobalBtn">Retrieve Global Leaderboard \u2192 Display</button>
+        </div>
+        <p class="status-msg" id="retrieveStatus"></p>
         ${graded.length === 0 ? `<p class="status-msg">No submissions yet.</p>` : graded.map((g, gi) => `
           <div class="results-row" data-slug="${slugFor(g.firstName, g.grade, g.school)}" style="flex-wrap:wrap;">
             <div style="flex-grow:1;">
@@ -678,6 +683,32 @@
       <p class="status-msg" id="postStatus"></p>
     `;
     document.getElementById("backBtn").addEventListener("click", () => { activeRunCode = null; renderRunsTab(); });
+
+    document.getElementById("retrieveRunBtn").addEventListener("click", async () => {
+      const statusEl = document.getElementById("retrieveStatus");
+      statusEl.textContent = "Publishing current run scores to the display\u2026";
+      try {
+        const publishedRunScoreboard = graded.map(g => ({ firstName: g.firstName, grade: g.grade, school: g.school, score: g.totalScore }));
+        await updateDoc(doc(db, "live_runs", code), { publishedRunScoreboard });
+        statusEl.textContent = "Current Run Scoreboard sent to the display.";
+      } catch (err) {
+        statusEl.textContent = "Couldn't publish: " + err.message;
+      }
+    });
+
+    document.getElementById("retrieveGlobalBtn").addEventListener("click", async () => {
+      const statusEl = document.getElementById("retrieveStatus");
+      statusEl.textContent = "Fetching this template's global leaderboard\u2026";
+      try {
+        const lbSnap = await getDocs(query(collection(db, "live_templates", run.templateId, "leaderboard"), orderBy("bestScore", "desc"), limit(15)));
+        const publishedGlobalLeaderboard = [];
+        lbSnap.forEach(d => { const r = d.data(); publishedGlobalLeaderboard.push({ firstName: r.firstName, grade: r.grade, school: r.school, score: r.bestScore }); });
+        await updateDoc(doc(db, "live_runs", code), { publishedGlobalLeaderboard });
+        statusEl.textContent = "Global Leaderboard sent to the display.";
+      } catch (err) {
+        statusEl.textContent = "Couldn't publish: " + err.message;
+      }
+    });
 
     content.querySelectorAll('[data-action="toggle-details"]').forEach(btn => {
       btn.addEventListener("click", () => {
