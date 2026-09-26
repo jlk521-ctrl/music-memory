@@ -79,6 +79,7 @@
 <div id="mainView">
   <h1 id="runLabel">Live Test</h1>
   <p class="join-line">Join code: <span class="code" id="joinCodeText">\u2013</span></p>
+  <img id="qrImg" alt="QR code to join this test" style="width:180px;height:180px;margin-bottom:28px;border-radius:8px;display:none;">
   <div class="stat-row">
     <div class="stat"><div class="num" id="joinedNum">0</div><div class="label">Students Joined</div></div>
     <div class="stat"><div class="num" id="trackNum">\u2013</div><div class="label">Current Track</div></div>
@@ -114,11 +115,16 @@
   const trafficLightEl = document.getElementById("trafficLight");
   const splashRoot = document.getElementById("splashRoot");
 
+  const qrImgEl = document.getElementById("qrImg");
+
   if (!code) {
     runLabelEl.textContent = "No run code given";
     joinCodeEl.textContent = "Add ?code=XXXXX to the URL";
   } else {
     joinCodeEl.textContent = code;
+    const joinUrl = `https://jlk521-ctrl.github.io/music-memory/live-test.html?code=${code}`;
+    qrImgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=${encodeURIComponent(joinUrl)}`;
+    qrImgEl.style.display = "block";
   }
 
   let trafficTimer = null;
