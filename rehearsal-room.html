@@ -377,30 +377,47 @@
   /* ============================================
      DATA FETCH — one track at a time, same anti-cheat pattern as the Practice Test
      ============================================ */
-  async function fetchLeaderboardTop(n){
+  const LB_APPROVED_COLLECTION = "leaderboard_approved";
+  const LB_PENDING_COLLECTION = "leaderboard_pending";
+
+  function scoreFieldFor(mode){
+    return mode === "official"
+      ? { score: "officialBestScore", time: "officialBestCompletionMs" }
+      : { score: "unofficialBestScore", time: "unofficialBestCompletionMs" };
+  }
+
+  async function fetchLeaderboardTop(n, mode){
     try {
-      const q = query(collection(db, "leaderboard_approved"), orderBy("bestScore", "desc"), limit(n));
+      const { score } = scoreFieldFor(mode);
+      // orderBy a field only returns documents that actually HAVE that
+      // field — so a student approved via the other mode simply won't
+      // appear here until they've also posted a qualifying score in this one.
+      const q = query(collection(db, LB_APPROVED_COLLECTION), orderBy(score, "desc"), limit(n));
       const snap = await getDocs(q);
       const rows = [];
-      snap.forEach(d => rows.push(d.data()));
+      snap.forEach(d => {
+        const data = d.data();
+        rows.push({ firstName: data.firstName, grade: data.grade, school: data.school, bestScore: data[score] });
+      });
       return rows;
     } catch (err) {
       return null; // fails quietly — sidebar just won't render if this errors
     }
   }
 
-  async function renderLeaderboardSidebarInto(containerId){
+  async function renderLeaderboardSidebarInto(containerId, mode){
     const el = document.getElementById(containerId);
     if (!el) return;
+    const title = mode === "official" ? "Official Leaderboard" : "Unofficial Leaderboard";
     el.innerHTML = `<p class="lb-loading">Loading leaderboard\u2026</p>`;
-    const rows = await fetchLeaderboardTop(30);
+    const rows = await fetchLeaderboardTop(30, mode);
     if (!rows) { el.innerHTML = ""; return; }
     if (rows.length === 0) {
-      el.innerHTML = `<h3 class="lb-title">Leaderboard</h3><p class="lb-empty">No approved scores yet \u2014 be the first!</p>`;
+      el.innerHTML = `<h3 class="lb-title">${title}</h3><p class="lb-empty">No approved scores yet \u2014 be the first!</p>`;
       return;
     }
     el.innerHTML = `
-      <h3 class="lb-title">Leaderboard</h3>
+      <h3 class="lb-title">${title}</h3>
       <ol class="lb-list">
         ${rows.map(r => `
           <li>
@@ -453,10 +470,10 @@
       <div class="with-sidebar">
         <div class="card" style="text-align:center;">
           <p style="margin-top:0;">${TOTAL_PIECES} tracks, shuffled order. For each, you'll recall the <strong>Composer</strong>, <strong>Major Work</strong>, and <strong>Selection Title</strong>.</p>
-          ${run.mode === 'official' ? `<p style="font-size:0.85rem;color:#8a7a63;">Any score above zero qualifies for the leaderboard!</p>` : ""}
+          <p style="font-size:0.85rem;color:#8a7a63;">Any score above zero qualifies for the ${run.mode === 'official' ? 'Official' : 'Unofficial'} leaderboard!</p>
           <button class="btn" id="startBtn">Start Rehearsal</button>
         </div>
-        ${run.mode === 'official' ? `<aside class="leaderboard-sidebar" id="lbSidebarModeSelect"></aside>` : ""}
+        <aside class="leaderboard-sidebar" id="lbSidebarModeSelect"></aside>
       </div>
     `;
     appEl.querySelectorAll(".mode-btn").forEach(btn => {
@@ -469,7 +486,7 @@
       run.startedAt = Date.now();
       renderTrack();
     });
-    if (run.mode === 'official') { renderLeaderboardSidebarInto("lbSidebarModeSelect"); }
+    renderLeaderboardSidebarInto("lbSidebarModeSelect", run.mode);
   }
 
   /* ============================================
@@ -762,8 +779,7 @@
       `;
     }).join("");
 
-    const qualifies = run.mode === "official" && totalScore > (LEADERBOARD_QUALIFY_SCORE - 1);
-
+    const qualifies = totalScore > (LEADERBOARD_QUALIFY_SCORE - 1);
     appEl.innerHTML = `
       <div class="with-sidebar">
         <div>
@@ -772,7 +788,7 @@
             <div class="time-banner">Completed in ${minutes}m ${seconds}s &middot; ${run.mode === "official" ? "Official" : "Unofficial"} mode</div>
             ${qualifies ? `
               <div class="lb-submit-box">
-                <p style="margin-top:0;"><strong>You qualify for the leaderboard!</strong></p>
+                <p style="margin-top:0;"><strong>You qualify for the ${run.mode === 'official' ? 'Official' : 'Unofficial'} leaderboard!</strong></p>
                 <input type="text" id="lbFirstName" placeholder="First name" style="width:100%;padding:8px;margin-bottom:8px;">
                 <select id="lbGrade" style="width:100%;padding:8px;margin-bottom:8px;">
                   <option value="">Grade\u2026</option>
@@ -790,11 +806,11 @@
           </div>
           <div class="nav-btns"><button class="btn" id="restart">Practice Again</button></div>
         </div>
-        ${run.mode === "official" ? `<aside class="leaderboard-sidebar" id="lbSidebarResults"></aside>` : ""}
+        <aside class="leaderboard-sidebar" id="lbSidebarResults"></aside>
       </div>
     `;
     document.getElementById("restart").addEventListener("click", renderModeSelect);
-    if (run.mode === "official") { renderLeaderboardSidebarInto("lbSidebarResults"); }
+    renderLeaderboardSidebarInto("lbSidebarResults", run.mode);
 
     if (qualifies) {
       document.getElementById("lbSubmitBtn").addEventListener("click", async () => {
@@ -808,24 +824,31 @@
         }
         statusEl.textContent = "Submitting\u2026";
         const slug = slugify(firstName, grade, school);
+        const { score: scoreField, time: timeField } = scoreFieldFor(run.mode);
         try {
-          const approvedSnap = await getDoc(doc(db, "leaderboard_approved", slug));
+          const approvedSnap = await getDoc(doc(db, LB_APPROVED_COLLECTION, slug));
           if (approvedSnap.exists()) {
+            // Already approved once — this covers BOTH leaderboards. Posting
+            // a qualifying score in a mode they haven't used yet just adds
+            // that field; no second approval needed either way.
             const existing = approvedSnap.data();
-            if (totalScore > existing.bestScore) {
-              await setDoc(doc(db, "leaderboard_approved", slug), {
-                firstName, grade, school, bestScore: totalScore, bestCompletionMs: elapsedMs, updatedAt: Date.now()
-              });
+            const existingModeScore = existing[scoreField];
+            if (existingModeScore === undefined || totalScore > existingModeScore) {
+              await setDoc(doc(db, LB_APPROVED_COLLECTION, slug), {
+                firstName, grade, school,
+                [scoreField]: totalScore, [timeField]: elapsedMs,
+                updatedAt: Date.now()
+              }, { merge: true });
               statusEl.textContent = "New best score posted to the leaderboard!";
-              renderLeaderboardSidebarInto("lbSidebarResults");
+              renderLeaderboardSidebarInto("lbSidebarResults", run.mode);
             } else {
-              statusEl.textContent = `You're already on the leaderboard with a score of ${existing.bestScore} \u2014 keep that one!`;
+              statusEl.textContent = `You're already on the leaderboard with a score of ${existingModeScore} \u2014 keep that one!`;
             }
           } else {
-            await setDoc(doc(db, "leaderboard_pending", slug), {
-              firstName, grade, school, score: totalScore, completionMs: elapsedMs, submittedAt: Date.now()
+            await setDoc(doc(db, LB_PENDING_COLLECTION, slug), {
+              firstName, grade, school, mode: run.mode, score: totalScore, completionMs: elapsedMs, submittedAt: Date.now()
             });
-            statusEl.textContent = "Submitted! Once your teacher approves your first score, it'll appear on the leaderboard.";
+            statusEl.textContent = "Submitted! Once your teacher approves your first score, it'll appear on the leaderboard \u2014 and future high scores in either mode will post automatically.";
           }
         } catch (err) {
           statusEl.textContent = "Couldn't submit right now: " + err.message;
