@@ -404,9 +404,10 @@
         const data = d.data();
         rows.push({ firstName: data.firstName, grade: data.grade, school: data.school, bestScore: data[score], bestTimeMs: data[time] });
       });
-      return rows;
+      return { rows };
     } catch (err) {
-      return null; // fails quietly — sidebar just won't render if this errors
+      console.error("Leaderboard fetch failed:", err);
+      return { error: err.message };
     }
   }
 
@@ -427,13 +428,18 @@
     const el = document.getElementById(containerId);
     if (!el) return;
     const title = mode === "official" ? "Official Rehearsal Leaderboard" : "Unofficial Leaderboard";
-    let rows = leaderboardCache[mode];
-    if (rows === null) {
+    let cached = leaderboardCache[mode];
+    if (cached === null) {
       el.innerHTML = `<p class="lb-loading">Loading leaderboard\u2026</p>`;
-      rows = await fetchLeaderboardTop(30, mode);
-      leaderboardCache[mode] = rows;
+      const result = await fetchLeaderboardTop(30, mode);
+      if (result.error) {
+        el.innerHTML = `<h3 class="lb-title">${title}</h3><p class="status-msg" style="color:var(--bad, #b3402f);">Couldn't load: ${result.error}</p>`;
+        return; // don't cache a failure — next render attempt will retry
+      }
+      cached = result.rows;
+      leaderboardCache[mode] = cached;
     }
-    if (!rows) { el.innerHTML = ""; return; }
+    const rows = cached;
     if (rows.length === 0) {
       el.innerHTML = `<h3 class="lb-title">${title}</h3><p class="lb-empty">No approved scores yet \u2014 be the first!</p>`;
       return;
