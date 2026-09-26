@@ -64,6 +64,14 @@
 
   .live-control{ text-align:center; }
   .track-badge{ font-family:var(--display); font-style:italic; font-size:1.6rem; color:var(--navy); background:#efe9da; border-radius:50%; width:70px; height:70px; line-height:70px; margin:0 auto 12px; }
+  .traffic-light{
+    font-family:var(--display); font-style:italic; font-size:1.5rem;
+    border-radius:50%; width:70px; height:70px; line-height:70px;
+    margin:0 auto 12px; transition:background-color 0.3s ease, color 0.3s ease;
+    background:#2ecc55; color:#000;
+  }
+  .traffic-light.yellow{ background:#f4d35e; color:#000; }
+  .traffic-light.red{ background:#e6392b; color:#fff; }
   .play-btn{ background:var(--navy); color:var(--parchment); border:none; padding:14px 28px; border-radius:30px; font-size:1rem; margin-bottom:10px; }
   .play-btn:disabled{ opacity:0.5; }
 
@@ -94,7 +102,7 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { initializeFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, collection, query, orderBy } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { initializeFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
   const firebaseConfig = {
@@ -462,13 +470,20 @@
 
     const idx = run.currentTrackIndex;
     const currentPieceId = idx >= 0 ? template.order[idx] : null;
+    const joinUrl = `https://jlk521-ctrl.github.io/music-memory/live-test.html?code=${code}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(joinUrl)}`;
 
     content.innerHTML = `
       <div class="card live-control">
         <h2 class="section-title">${run.label}</h2>
         <p>Join code: <span class="join-code">${code}</span></p>
-        <p style="font-size:0.85rem;color:#8a7a63;">Students go to the Live Test page and enter this code.</p>
-        <div class="track-badge">${idx >= 0 ? idx + 1 : "\u2013"}</div>
+        <p style="font-size:0.85rem;color:#8a7a63;">Scan to join instantly, or go to the Live Test page and enter the code above.</p>
+        ${idx < 0
+          ? `<img src="${qrUrl}" alt="QR code to join this test" style="width:260px;height:260px;margin:0 auto 12px;display:block;">`
+          : `<div class="track-badge">${idx + 1}</div>`
+        }
+        <p id="joinedCount" style="font-size:0.85rem;color:#8a7a63;">Loading joined count\u2026</p>
+        ${idx >= 0 ? `<div class="traffic-light" id="trafficLight">40</div>` : ""}
         <p>${idx >= 0 ? `Now playing: <strong>${pieces[currentPieceId].composer} \u2014 ${pieces[currentPieceId].majorWork}</strong> (hidden from students)` : "Not started yet"}</p>
         <button class="play-btn" id="playBtn" ${idx < 0 ? "disabled" : ""}>Play Track ${idx >= 0 ? idx + 1 : ""}</button>
         <div style="margin-top:14px;">
@@ -484,7 +499,12 @@
       </div>
     `;
 
-    document.getElementById("backBtn").addEventListener("click", () => { activeRunCode = null; renderRunsTab(); });
+    document.getElementById("backBtn").addEventListener("click", () => { clearInterval(trafficLightInterval); activeRunCode = null; renderRunsTab(); });
+
+    const joinedCountEl = document.getElementById("joinedCount");
+    const unsubJoined = onSnapshot(collection(db, "live_runs", code, "responses"), (snap) => {
+      if (joinedCountEl) joinedCountEl.textContent = `${snap.size} student${snap.size === 1 ? "" : "s"} joined so far`;
+    }, () => { if (joinedCountEl) joinedCountEl.textContent = ""; });
 
     if (idx >= 0) {
       document.getElementById("playBtn").addEventListener("click", async (e) => {
@@ -496,8 +516,32 @@
           // from the very start of the whole run.
           await updateDoc(doc(db, "live_runs", code), { lastTrackPlayedAt: Date.now() });
         }
+        startTrafficLight();
         playClip(pieces[currentPieceId].videoId, seg.start, () => { e.target.disabled = false; });
       });
+    }
+
+    let trafficLightInterval = null;
+    function startTrafficLight(){
+      clearInterval(trafficLightInterval);
+      let elapsed = 0;
+      const el = document.getElementById("trafficLight");
+      const update = () => {
+        if (!el) return;
+        const remaining = 40 - elapsed;
+        el.classList.remove("yellow", "red");
+        if (remaining > 20) {
+          el.textContent = remaining;
+        } else if (remaining >= 0) {
+          el.classList.add("yellow");
+          el.textContent = remaining;
+        } else {
+          el.classList.add("red");
+          el.textContent = "+" + Math.abs(remaining);
+        }
+      };
+      update();
+      trafficLightInterval = setInterval(() => { elapsed += 1; update(); }, 1000);
     }
 
     if (idx < 0) {
@@ -507,11 +551,13 @@
       });
     } else if (idx < TOTAL_PIECES - 1) {
       document.getElementById("nextBtn").addEventListener("click", async () => {
+        clearInterval(trafficLightInterval);
         await updateDoc(doc(db, "live_runs", code), { currentTrackIndex: idx + 1 });
         renderLiveControl(code);
       });
     } else {
       document.getElementById("finishBtn").addEventListener("click", async () => {
+        clearInterval(trafficLightInterval);
         await updateDoc(doc(db, "live_runs", code), { status: "finished" });
         renderLiveControl(code);
       });
@@ -525,6 +571,34 @@
     return (s || "").trim().toLowerCase().replace(/\s+/g, " ")
       .replace(/[\u2018\u2019\u02bc]/g, "'")
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function levenshtein(a, b){
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++){
+      for (let j = 1; j <= n; j++){
+        dp[i][j] = a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
+    }
+    return dp[m][n];
+  }
+
+  // Matches UIL's own scoring standard: full credit for exact, half credit
+  // for "correct but misspelled" (approximated via edit distance), zero
+  // for wrong or blank.
+  function gradeMatch(guessRaw, truthRaw){
+    const guess = norm(guessRaw), truth = norm(truthRaw);
+    if (truth === "") return guess === "" ? 1 : 0;
+    if (guess === "") return 0;
+    if (guess === truth) return 1;
+    const dist = levenshtein(guess, truth);
+    const threshold = Math.max(1, Math.round(truth.length * 0.2));
+    return dist <= threshold ? 0.5 : 0;
   }
 
   function slugFor(firstName, grade, school){
@@ -545,17 +619,14 @@
       const perTrack = template.order.map((pieceId, i) => {
         const truth = pieces[pieceId];
         const ans = (r.answers && r.answers[i]) || {};
-        const composerOk = norm(ans.composer) === norm(truth.composer);
-        const majorOk = norm(ans.majorWork) === norm(truth.majorWork);
-        const selTruth = truth.selectionTitle || "";
-        const selOk = selTruth === "" ? norm(ans.selectionTitle) === "" : norm(ans.selectionTitle) === norm(selTruth);
-        let trackScore = 0;
-        if (composerOk) trackScore += OFFICIAL_POINTS_PER_FIELD;
-        if (majorOk) trackScore += OFFICIAL_POINTS_PER_FIELD;
-        if (selOk) trackScore += OFFICIAL_POINTS_PER_FIELD;
+        const composerCredit = gradeMatch(ans.composer, truth.composer);
+        const majorCredit = gradeMatch(ans.majorWork, truth.majorWork);
+        const selCredit = gradeMatch(ans.selectionTitle, truth.selectionTitle || "");
+        const composerOk = composerCredit === 1, majorOk = majorCredit === 1, selOk = selCredit === 1;
+        let trackScore = (composerCredit + majorCredit + selCredit) * OFFICIAL_POINTS_PER_FIELD;
         trackScore = Math.ceil(trackScore);
         total += trackScore;
-        return { composerOk, majorOk, selOk, trackScore };
+        return { composerOk, majorOk, selOk, composerCredit, majorCredit, selCredit, trackScore };
       });
       return { ...r, perTrack, totalScore: total };
     });
@@ -585,9 +656,9 @@
                     Track ${i + 1}: <strong>${truth.composer}</strong> \u2014 ${truth.majorWork}${truth.selectionTitle ? ` (${truth.selectionTitle})` : ""}
                     ${!allOk ? `
                       <div style="color:var(--bad); margin-top:2px; font-size:0.8rem;">
-                        ${!t.composerOk ? `Composer: wrote "${ans.composer || "(blank)"}"<br>` : ""}
-                        ${!t.majorOk ? `Major Work: wrote "${ans.majorWork || "(blank)"}"<br>` : ""}
-                        ${!t.selOk ? `Selection Title: wrote "${ans.selectionTitle || "(blank)"}"` : ""}
+                        ${!t.composerOk ? `Composer: wrote "${ans.composer || "(blank)"}"${t.composerCredit === 0.5 ? " (misspelled \u2014 half credit)" : ""}<br>` : ""}
+                        ${!t.majorOk ? `Major Work: wrote "${ans.majorWork || "(blank)"}"${t.majorCredit === 0.5 ? " (misspelled \u2014 half credit)" : ""}<br>` : ""}
+                        ${!t.selOk ? `Selection Title: wrote "${ans.selectionTitle || "(blank)"}"${t.selCredit === 0.5 ? " (misspelled \u2014 half credit)" : ""}` : ""}
                       </div>
                     ` : ""}
                   </div>
