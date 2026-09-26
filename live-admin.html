@@ -102,7 +102,7 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { initializeFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { initializeFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, deleteField, updateDoc, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
   const firebaseConfig = {
@@ -688,7 +688,10 @@
       const statusEl = document.getElementById("retrieveStatus");
       statusEl.textContent = "Publishing current run scores to the display\u2026";
       try {
-        const publishedRunScoreboard = graded.map(g => ({ firstName: g.firstName, grade: g.grade, school: g.school, score: g.totalScore }));
+        const publishedRunScoreboard = graded
+          .map((g, gi) => ({ g, gi }))
+          .filter(({ gi }) => approvedIndices.has(String(gi)))
+          .map(({ g }) => ({ firstName: g.firstName, grade: g.grade, school: g.school, score: g.totalScore }));
         await updateDoc(doc(db, "live_runs", code), { publishedRunScoreboard });
         statusEl.textContent = "Current Run Scoreboard sent to the display.";
       } catch (err) {
@@ -719,10 +722,35 @@
       });
     });
 
+    const approvedIndices = new Set();
+
     content.querySelectorAll('[data-action="approve-check"]').forEach(cb => {
-      cb.addEventListener("change", () => {
-        const postBtn = content.querySelector(`[data-action="post"][data-idx="${cb.dataset.idx}"]`);
-        if (postBtn) postBtn.disabled = !cb.checked;
+      cb.addEventListener("change", async () => {
+        const idx = cb.dataset.idx;
+        const postBtn = content.querySelector(`[data-action="post"][data-idx="${idx}"]`);
+        const statusEl = document.getElementById("postStatus");
+        if (cb.checked) {
+          approvedIndices.add(idx);
+          if (postBtn) postBtn.disabled = false;
+        } else {
+          approvedIndices.delete(idx);
+          if (postBtn) postBtn.disabled = true;
+          // Unapprove: pull this student's Live score back off both
+          // leaderboards, in case it was already posted.
+          const g = graded[Number(idx)];
+          if (!g || !g.firstName || !g.grade || !g.school) return;
+          const slug = slugFor(g.firstName, g.grade, g.school);
+          statusEl.textContent = "Removing from leaderboard\u2026";
+          try {
+            await updateDoc(doc(db, "leaderboard_approved", slug), {
+              liveBestScore: deleteField(), liveBestCompletionMs: deleteField()
+            });
+            await deleteDoc(doc(db, "live_templates", run.templateId, "leaderboard", slug));
+            statusEl.textContent = `Removed ${g.firstName} from the Live leaderboard. Click Retrieve to update the display.`;
+          } catch (err) {
+            statusEl.textContent = "Couldn't remove: " + err.message;
+          }
+        }
       });
     });
 
