@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Live Test Display — Music Memory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#122341; --navy-deep:#0a1526; --navy-text:#1d5099;
+    --parchment:#f2efe6; --orange:#d97e2c; --orange-bright:#f0b83e;
+    --ink:#1c1712; --good:#2f6b4a; --bad:#b3402f;
+    --display:'Fraunces', serif; --body:'Libre Caslon Text', serif;
+  }
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; margin:0; }
+  html{ color-scheme:light; }
+  body{
+    background:radial-gradient(ellipse at 50% -10%, rgba(240,184,62,0.15), transparent 60%),
+      linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color:var(--parchment); font-family:var(--body);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:100vh; padding:32px; text-align:center; overflow:hidden;
+  }
+
+  h1{ font-family:var(--display); font-style:italic; font-weight:600; font-size:clamp(2.4rem, 6vw, 4.2rem); margin:0 0 8px; }
+  .join-line{ font-size:clamp(1.2rem, 3vw, 1.8rem); margin-bottom:28px; }
+  .join-line .code{ font-family:var(--display); font-style:italic; color:var(--orange-bright); letter-spacing:0.12em; }
+
+  .stat-row{ display:flex; gap:60px; flex-wrap:wrap; justify-content:center; margin-bottom:36px; }
+  .stat{ text-align:center; }
+  .stat .num{ font-family:var(--display); font-style:italic; font-weight:700; font-size:clamp(3rem, 8vw, 5.5rem); color:var(--orange-bright); line-height:1; }
+  .stat .label{ font-size:clamp(1rem, 2vw, 1.3rem); color:rgba(241,231,208,0.8); margin-top:6px; }
+
+  .traffic-light{
+    font-family:var(--display); font-style:italic; font-weight:700;
+    border-radius:50%; width:clamp(140px, 20vw, 220px); height:clamp(140px, 20vw, 220px);
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(3rem, 8vw, 5rem);
+    background:#2ecc55; color:#000; margin-bottom:10px;
+    transition:background-color 0.3s ease, color 0.3s ease;
+    box-shadow:0 0 60px rgba(0,0,0,0.3);
+  }
+  .traffic-light.yellow{ background:#f4d35e; color:#000; }
+  .traffic-light.red{ background:#e6392b; color:#fff; }
+  .traffic-light.idle{ background:rgba(241,231,208,0.15); color:rgba(241,231,208,0.6); font-size:clamp(1.5rem, 3vw, 2rem); }
+
+  /* ---------- Splash reveal ---------- */
+  .splash-overlay{
+    position:fixed; inset:0; z-index:50;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; overflow:hidden;
+    animation:splash-in 0.5s ease-out;
+  }
+  .splash-overlay.rank-1{ background:radial-gradient(ellipse at 50% 30%, #f0d060, #b8860b 70%); }
+  .splash-overlay.rank-2{ background:radial-gradient(ellipse at 50% 30%, #e6e6e6, #9a9a9a 70%); }
+  .splash-overlay.rank-3{ background:radial-gradient(ellipse at 50% 30%, #e0a868, #8a5a2b 70%); }
+  .splash-overlay.rank-other{ background:radial-gradient(ellipse at 50% 30%, #4a6fa5, var(--navy-deep) 70%); }
+
+  @keyframes splash-in{ from{ opacity:0; transform:scale(0.9); } to{ opacity:1; transform:scale(1); } }
+
+  .splash-trophy{ font-size:clamp(4rem, 12vw, 8rem); margin-bottom:10px; animation:bounce 1.2s ease infinite; }
+  @keyframes bounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-18px); } }
+
+  .splash-name{ font-family:var(--display); font-style:italic; font-weight:700; font-size:clamp(3rem, 9vw, 6rem); color:#fff; text-shadow:0 4px 20px rgba(0,0,0,0.4); margin:0; }
+  .splash-meta{ font-size:clamp(1.2rem, 2.5vw, 1.8rem); color:rgba(255,255,255,0.9); margin:8px 0 24px; }
+  .splash-rank{ font-family:var(--display); font-style:italic; font-weight:700; font-size:clamp(1.8rem, 4vw, 3rem); color:#fff; margin-bottom:6px; }
+  .splash-score{ font-family:var(--display); font-style:italic; font-weight:700; font-size:clamp(4rem, 12vw, 7.5rem); color:#fff; text-shadow:0 4px 24px rgba(0,0,0,0.4); }
+
+  .confetti{ position:absolute; top:-10%; width:14px; height:14px; opacity:0.9; animation:fall linear forwards; }
+  @keyframes fall{ to{ transform:translateY(115vh) rotate(360deg); opacity:0.3; } }
+</style>
+</head>
+<body>
+
+<div id="mainView">
+  <h1 id="runLabel">Live Test</h1>
+  <p class="join-line">Join code: <span class="code" id="joinCodeText">\u2013</span></p>
+  <div class="stat-row">
+    <div class="stat"><div class="num" id="joinedNum">0</div><div class="label">Students Joined</div></div>
+    <div class="stat"><div class="num" id="trackNum">\u2013</div><div class="label">Current Track</div></div>
+  </div>
+  <div class="traffic-light idle" id="trafficLight">Waiting</div>
+</div>
+
+<div id="splashRoot"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { initializeFirestore, doc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1buaseorV5ZMvicSbYrzx3tz7_tos_wQ",
+    authDomain: "music-memory-490d4.firebaseapp.com",
+    projectId: "music-memory-490d4",
+    storageBucket: "music-memory-490d4.firebasestorage.app",
+    messagingSenderId: "669104332511",
+    appId: "1:669104332511:web:6e15026013e67de445536a"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+
+  const TOTAL_PIECES = 10;
+  const params = new URLSearchParams(window.location.search);
+  const code = (params.get("code") || "").trim().toUpperCase();
+
+  const runLabelEl = document.getElementById("runLabel");
+  const joinCodeEl = document.getElementById("joinCodeText");
+  const joinedNumEl = document.getElementById("joinedNum");
+  const trackNumEl = document.getElementById("trackNum");
+  const trafficLightEl = document.getElementById("trafficLight");
+  const splashRoot = document.getElementById("splashRoot");
+
+  if (!code) {
+    runLabelEl.textContent = "No run code given";
+    joinCodeEl.textContent = "Add ?code=XXXXX to the URL";
+  } else {
+    joinCodeEl.textContent = code;
+  }
+
+  let trafficTimer = null;
+  let lastAnnouncementSeen = null;
+
+  function updateTrafficLight(startedAt){
+    clearInterval(trafficTimer);
+    if (!startedAt) {
+      trafficLightEl.className = "traffic-light idle";
+      trafficLightEl.textContent = "Waiting";
+      return;
+    }
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+      const remaining = 40 - elapsed;
+      trafficLightEl.classList.remove("yellow", "red", "idle");
+      if (remaining > 20) {
+        trafficLightEl.textContent = remaining;
+      } else if (remaining >= 0) {
+        trafficLightEl.classList.add("yellow");
+        trafficLightEl.textContent = remaining;
+      } else {
+        trafficLightEl.classList.add("red");
+        trafficLightEl.textContent = "+" + Math.abs(remaining);
+      }
+    };
+    tick();
+    trafficTimer = setInterval(tick, 1000);
+  }
+
+  function trophyFor(rank){
+    if (rank === 1) return "\u{1F3C6}";
+    if (rank === 2) return "\u{1F948}";
+    if (rank === 3) return "\u{1F949}";
+    return "\u{1F3B5}";
+  }
+
+  function rankLabel(rank){
+    if (rank === 1) return "1st Place!";
+    if (rank === 2) return "2nd Place!";
+    if (rank === 3) return "3rd Place!";
+    const suffix = (rank % 10 === 1 && rank % 100 !== 11) ? "st"
+      : (rank % 10 === 2 && rank % 100 !== 12) ? "nd"
+      : (rank % 10 === 3 && rank % 100 !== 13) ? "rd" : "th";
+    return `${rank}${suffix} Place`;
+  }
+
+  function rankClass(rank){
+    if (rank === 1) return "rank-1";
+    if (rank === 2) return "rank-2";
+    if (rank === 3) return "rank-3";
+    return "rank-other";
+  }
+
+  function launchConfetti(container){
+    const colors = ["#f0b83e", "#d97e2c", "#ffffff", "#e6392b", "#2ecc55"];
+    for (let i = 0; i < 60; i++){
+      const piece = document.createElement("div");
+      piece.className = "confetti";
+      piece.style.left = Math.random() * 100 + "%";
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.animationDuration = (2.5 + Math.random() * 2) + "s";
+      piece.style.animationDelay = (Math.random() * 0.8) + "s";
+      container.appendChild(piece);
+    }
+  }
+
+  function showSplash(ann){
+    const overlay = document.createElement("div");
+    overlay.className = `splash-overlay ${rankClass(ann.rank)}`;
+    overlay.innerHTML = `
+      <div class="splash-trophy">${trophyFor(ann.rank)}</div>
+      <p class="splash-name">${ann.firstName}</p>
+      <p class="splash-meta">${ann.grade} \u00b7 ${ann.school}</p>
+      <p class="splash-rank">${rankLabel(ann.rank)}</p>
+      <p class="splash-score">${ann.score} pts</p>
+    `;
+    splashRoot.appendChild(overlay);
+    launchConfetti(overlay);
+    setTimeout(() => { overlay.remove(); }, 8000);
+  }
+
+  onSnapshot(doc(db, "live_runs", code), (snap) => {
+    if (!snap.exists()) return;
+    const run = snap.data();
+    runLabelEl.textContent = run.label || "Live Test";
+    trackNumEl.textContent = run.status === "finished"
+      ? "Done"
+      : run.currentTrackIndex >= 0 ? `${run.currentTrackIndex + 1} / ${TOTAL_PIECES}` : "\u2013";
+
+    updateTrafficLight(run.status === "active" && run.currentPlayStartedAt ? run.currentPlayStartedAt : null);
+
+    if (run.lastAnnouncement && run.lastAnnouncement.timestamp !== lastAnnouncementSeen) {
+      lastAnnouncementSeen = run.lastAnnouncement.timestamp;
+      showSplash(run.lastAnnouncement);
+    }
+  });
+
+  if (code) {
+    onSnapshot(collection(db, "live_runs", code, "responses"), (snap) => {
+      joinedNumEl.textContent = snap.size;
+    });
+  }
+</script>
+
+</body>
+</html>
