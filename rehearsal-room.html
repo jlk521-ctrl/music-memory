@@ -393,16 +393,16 @@
 
   async function fetchLeaderboardTop(n, mode){
     try {
-      const { score } = scoreFieldFor(mode);
-      // orderBy a field only returns documents that actually HAVE that
-      // field — so a student approved via the other mode simply won't
-      // appear here until they've also posted a qualifying score in this one.
-      const q = query(collection(db, LB_APPROVED_COLLECTION), orderBy(score, "desc"), limit(n));
+      const { score, time } = scoreFieldFor(mode);
+      // orderBy score first (desc), then completion time as a tie-breaker
+      // (asc — shorter time wins). Compound orderBy only returns docs that
+      // have BOTH fields, which is fine since they're always written together.
+      const q = query(collection(db, LB_APPROVED_COLLECTION), orderBy(score, "desc"), orderBy(time, "asc"), limit(n));
       const snap = await getDocs(q);
       const rows = [];
       snap.forEach(d => {
         const data = d.data();
-        rows.push({ firstName: data.firstName, grade: data.grade, school: data.school, bestScore: data[score] });
+        rows.push({ firstName: data.firstName, grade: data.grade, school: data.school, bestScore: data[score], bestTimeMs: data[time] });
       });
       return rows;
     } catch (err) {
@@ -419,7 +419,7 @@
     if (!cache) return; // nothing cached yet — next real fetch will pick it up
     const idx = cache.findIndex(r => r.firstName === entry.firstName && r.grade === entry.grade && r.school === entry.school);
     if (idx >= 0) { cache[idx] = entry; } else { cache.push(entry); }
-    cache.sort((a, b) => b.bestScore - a.bestScore);
+    cache.sort((a, b) => (b.bestScore - a.bestScore) || (a.bestTimeMs - b.bestTimeMs));
     if (cache.length > 30) cache.length = 30;
   }
 
@@ -492,7 +492,6 @@
       <div class="with-sidebar">
         <div class="card" style="text-align:center;">
           <p style="margin-top:0;">${TOTAL_PIECES} tracks, shuffled order. For each, you'll recall the <strong>Composer</strong>, <strong>Major Work</strong>, and <strong>Selection Title</strong>.</p>
-          <p style="font-size:0.85rem;color:#8a7a63;">Any score above zero qualifies for the ${run.mode === 'official' ? 'Official Rehearsal' : 'Unofficial'} leaderboard!</p>
           <button class="btn" id="startBtn">Start Rehearsal</button>
         </div>
         <aside class="leaderboard-sidebar" id="lbSidebarModeSelect"></aside>
@@ -862,7 +861,7 @@
                 updatedAt: Date.now()
               }, { merge: true });
               statusEl.textContent = "New best score posted to the leaderboard!";
-              upsertLocalLeaderboard(run.mode, { firstName, grade, school, bestScore: totalScore });
+              upsertLocalLeaderboard(run.mode, { firstName, grade, school, bestScore: totalScore, bestTimeMs: elapsedMs });
               renderLeaderboardSidebarInto("lbSidebarResults", run.mode);
             } else {
               statusEl.textContent = `You're already on the leaderboard with a score of ${existingModeScore} \u2014 keep that one!`;
