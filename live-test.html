@@ -124,7 +124,12 @@
   /* ============================================
      JOIN SCREEN
      ============================================ */
-  renderJoin();
+  const urlCode = new URLSearchParams(window.location.search).get("code");
+  if (urlCode) {
+    enterTest(urlCode.trim().toUpperCase());
+  } else {
+    renderJoin();
+  }
 
   function renderJoin(){
     appEl.innerHTML = `
