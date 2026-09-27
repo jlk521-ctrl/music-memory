@@ -98,7 +98,12 @@
     font-size:clamp(1.1rem, 2vw, 1.6rem); color:var(--orange-bright); font-weight:700;
     letter-spacing:0.06em; margin-bottom:16px; text-align:center;
   }
-  .hint-row-huge{ display:flex; flex-wrap:wrap; gap:clamp(4px, 0.8vw, 10px); justify-content:center; margin-bottom:20px; }
+  .hint-row-huge{ display:flex; flex-wrap:wrap; gap:clamp(4px, 0.8vw, 10px); justify-content:center; margin-bottom:6px; }
+  .hint-word{ display:inline-flex; flex-wrap:nowrap; gap:clamp(4px, 0.8vw, 10px); }
+  .hint-category-label{
+    font-size:clamp(0.85rem, 1.4vw, 1.15rem); color:rgba(241,231,208,0.75);
+    text-align:center; margin-bottom:6px; font-weight:700; letter-spacing:0.03em;
+  }
   .hint-cell-huge{
     width:clamp(34px, 5vw, 68px); height:clamp(48px, 7.5vw, 96px);
     border-bottom:6px solid var(--parchment);
@@ -494,8 +499,11 @@
       if (currentIdx < 0) { return; }
       panel.innerHTML = `
         <div class="hint-label">HINTS \u2014 TRACK ${currentIdx + 1}</div>
+        <div class="hint-category-label">Composer</div>
         <div id="hintComposer" class="hint-row-huge"></div>
+        <div class="hint-category-label">Major Work</div>
         <div id="hintMajor" class="hint-row-huge"></div>
+        <div class="hint-category-label">Selection</div>
         <div id="hintSelection" class="hint-row-huge"></div>
       `;
       renderHintRow("hintComposer", "", 0);
@@ -506,10 +514,19 @@
     function renderHintRow(elId, answer, revealedCount){
       const el = document.getElementById(elId);
       if (!el) return;
-      el.innerHTML = answer.split("").map((ch, i) => {
-        if (ch === " ") return `<span class="hint-cell-huge space"></span>`;
-        return `<span class="hint-cell-huge">${i < revealedCount ? ch : ""}</span>`;
-      }).join("");
+      // Group each word's letters into its own no-wrap unit, so a long word
+      // moves to the next line as a whole rather than splitting mid-word.
+      const words = answer.split(" ");
+      let globalIndex = 0;
+      el.innerHTML = words.map(word => {
+        const cells = word.split("").map(ch => {
+          const shown = globalIndex < revealedCount ? ch : "";
+          globalIndex += 1;
+          return `<span class="hint-cell-huge">${shown}</span>`;
+        }).join("");
+        globalIndex += 1; // account for the space between words
+        return `<span class="hint-word">${cells}</span>`;
+      }).join(`<span class="hint-cell-huge space"></span>`);
     }
 
     function resumeHintReveal(pieceId){
