@@ -554,6 +554,7 @@
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
           <button class="btn small" id="retrieveRunBtn">Retrieve Current Run Scores \u2192 Display</button>
           <button class="btn small" id="retrieveGlobalBtn">Retrieve Global Leaderboard \u2192 Display</button>
+          <button class="btn small secondary" id="approveAllBtn">Approve All</button>
         </div>
         <p class="status-msg" id="retrieveStatus"></p>
         ${graded.length === 0 ? `<p class="status-msg">No submissions yet.</p>` : graded.map((g, gi) => `
@@ -636,6 +637,16 @@
     });
 
     const approvedIndices = new Set();
+
+    document.getElementById("approveAllBtn").addEventListener("click", () => {
+      content.querySelectorAll('[data-action="approve-check"]').forEach(cb => {
+        cb.checked = true;
+        approvedIndices.add(cb.dataset.idx);
+        const postBtn = content.querySelector(`[data-action="post"][data-idx="${cb.dataset.idx}"]`);
+        if (postBtn) postBtn.disabled = false;
+      });
+      document.getElementById("postStatus").textContent = "All students approved \u2014 Post to Leaderboard is now enabled for everyone.";
+    });
 
     content.querySelectorAll('[data-action="approve-check"]').forEach(cb => {
       cb.addEventListener("change", async () => {
