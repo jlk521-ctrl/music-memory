@@ -441,6 +441,7 @@
   }
 
   async function renderRunDetail(code){
+    const content = document.getElementById("tabContent");
     content.innerHTML = `<div class="card"><p class="status-msg">Loading run\u2026</p></div>`;
     const runSnap = await getDoc(doc(db, "live_runs", code));
     if (!runSnap.exists()) { content.innerHTML = `<div class="card"><p class="status-msg">Run not found.</p><button class="btn" id="backBtn">Back</button></div>`; document.getElementById("backBtn").addEventListener("click", () => { activeRunCode = null; renderRunsTab(); }); return; }
