@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>Live Test Display — Music Memory</title>
+<title>Public Display — Music Memory</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -22,60 +22,100 @@
     background:radial-gradient(ellipse at 50% -10%, rgba(240,184,62,0.15), transparent 60%),
       linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
     color:var(--parchment); font-family:var(--body);
-    display:flex; flex-direction:row; align-items:stretch; justify-content:center; gap:24px;
-    min-height:100vh; padding:24px; overflow:hidden;
+    min-height:100vh; overflow-x:hidden;
   }
-  @media (max-width:1100px){ body{ flex-direction:column; align-items:center; } }
+  button{ font-family:var(--body); cursor:pointer; }
 
-  #centerCol{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; flex:1 1 auto; min-width:0; }
+  .login-wrap{ display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  .login-card{
+    background:#fff; color:var(--ink); border-radius:8px; padding:30px;
+    max-width:360px; width:90%; text-align:center;
+  }
+  .login-card h2{ font-family:var(--display); font-style:italic; color:var(--navy-text); }
+  .btn{ background:var(--navy); color:var(--parchment); border:none; padding:10px 22px; border-radius:30px; font-size:0.9rem; }
+  .btn:hover{ background:var(--navy-deep); }
+  .btn:disabled{ opacity:0.5; cursor:default; }
+  .status-msg{ font-size:0.85rem; color:#8a7a63; margin-top:8px; }
+
+  #controlsBar{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center;
+    padding:14px; background:rgba(0,0,0,0.2);
+  }
+  #controlsBar .btn.small{ padding:8px 16px; font-size:0.85rem; }
+  #signoutBtn{ position:fixed; top:10px; right:10px; z-index:60; }
+
+  #layout{
+    display:flex; flex-direction:row; align-items:stretch; justify-content:center; gap:24px;
+    padding:24px; min-height:70vh;
+  }
+  @media (max-width:1100px){ #layout{ flex-direction:column; align-items:center; } }
+
+  #centerCol{ display:flex; flex-direction:column; align-items:center; justify-content:flex-start; text-align:center; flex:1 1 auto; min-width:0; }
+
+  h1{ font-family:var(--display); font-style:italic; font-weight:600; font-size:clamp(2.2rem, 5vw, 3.6rem); margin:0 0 8px; }
+  .join-line{ font-size:clamp(1.1rem, 2.5vw, 1.6rem); margin-bottom:20px; }
+  .join-line .code{ font-family:var(--display); font-style:italic; color:var(--orange-bright); letter-spacing:0.12em; }
+
+  #qrImg{ width:160px; height:160px; margin:0 auto 20px; border-radius:8px; display:none; }
+
+  .stat-row{ display:flex; gap:50px; flex-wrap:wrap; justify-content:center; margin:0 auto 24px; width:fit-content; }
+  .stat{ text-align:center; }
+  .stat .num{ font-family:var(--display); font-style:italic; font-weight:700; font-size:clamp(2.4rem, 6vw, 4rem); color:var(--orange-bright); line-height:1; }
+  .stat .label{ font-size:clamp(0.9rem, 1.6vw, 1.1rem); color:rgba(241,231,208,0.8); margin-top:4px; }
+
+  .traffic-light{
+    font-family:var(--display); font-style:italic; font-weight:700;
+    border-radius:50%; width:clamp(120px, 16vw, 180px); height:clamp(120px, 16vw, 180px);
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(2.4rem, 6vw, 3.6rem);
+    background:#2ecc55; color:#000; margin-bottom:16px;
+    transition:background-color 0.3s ease, color 0.3s ease;
+    box-shadow:0 0 50px rgba(0,0,0,0.3);
+  }
+  .traffic-light.yellow{ background:#f4d35e; color:#000; }
+  .traffic-light.red{ background:#e6392b; color:#fff; }
+  .traffic-light.idle{ background:rgba(241,231,208,0.15); color:rgba(241,231,208,0.6); font-size:clamp(1.2rem, 2.5vw, 1.6rem); }
+
+  .hint-panel{
+    background:rgba(241,231,208,0.08); border:1px solid rgba(241,231,208,0.2); border-radius:8px;
+    padding:16px 20px; margin-bottom:20px; max-width:600px;
+  }
+  .hint-panel .hint-label{ font-size:0.8rem; color:var(--orange-bright); font-weight:700; letter-spacing:0.05em; margin-bottom:6px; }
+  .hint-row{ display:flex; flex-wrap:wrap; gap:4px; justify-content:center; margin-bottom:8px; }
+  .hint-cell{
+    width:26px; height:32px; border-bottom:2px solid var(--parchment);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--display); font-weight:600; font-size:1rem; color:var(--parchment);
+  }
+  .hint-cell.space{ border-bottom:none; width:14px; }
+  .revealed-list{ font-size:0.85rem; color:rgba(241,231,208,0.7); max-height:120px; overflow-y:auto; text-align:left; margin-top:10px; }
 
   .side-panel{
     flex:0 0 300px; max-width:300px;
     background:rgba(241,231,208,0.06); border:1px solid rgba(241,231,208,0.15); border-radius:10px;
     padding:20px; display:flex; flex-direction:column;
-    max-height:90vh; overflow-y:auto;
+    max-height:80vh; overflow-y:auto;
   }
   @media (max-width:1100px){ .side-panel{ flex:0 0 auto; max-width:600px; width:100%; max-height:260px; } }
   .side-panel h2{
     font-family:var(--display); font-style:italic; font-weight:600;
-    font-size:clamp(1.3rem, 2.5vw, 1.8rem); margin:0 0 14px; color:var(--orange-bright); text-align:center;
+    font-size:clamp(1.2rem, 2.2vw, 1.6rem); margin:0 0 10px; color:var(--orange-bright); text-align:center;
   }
+  .side-panel .retrieve-btn{ margin:0 auto 14px; display:block; }
   .side-panel ol{ list-style:none; margin:0; padding:0; }
   .side-panel li{
     display:flex; align-items:baseline; gap:8px;
-    padding:8px 0; border-bottom:1px solid rgba(241,231,208,0.1);
-    font-size:clamp(0.95rem, 1.4vw, 1.15rem);
+    padding:7px 0; border-bottom:1px solid rgba(241,231,208,0.1);
+    font-size:clamp(0.9rem, 1.3vw, 1.05rem);
   }
   .side-panel li:last-child{ border-bottom:none; }
+  .side-panel li.masked{ color:rgba(241,231,208,0.35); font-style:italic; }
   .side-panel .rank-num{ font-family:var(--display); font-style:italic; color:var(--orange); min-width:1.5em; }
   .side-panel .sp-name{ font-weight:700; flex-grow:1; }
   .side-panel .sp-meta{ font-size:0.78em; color:rgba(241,231,208,0.6); display:block; }
   .side-panel .sp-score{ font-family:var(--display); font-style:italic; color:var(--orange-bright); }
-  .side-panel .empty{ text-align:center; color:rgba(241,231,208,0.6); font-size:0.95rem; }
+  .side-panel .empty{ text-align:center; color:rgba(241,231,208,0.6); font-size:0.9rem; }
 
-  h1{ font-family:var(--display); font-style:italic; font-weight:600; font-size:clamp(2.4rem, 6vw, 4.2rem); margin:0 0 8px; }
-  .join-line{ font-size:clamp(1.2rem, 3vw, 1.8rem); margin-bottom:28px; }
-  .join-line .code{ font-family:var(--display); font-style:italic; color:var(--orange-bright); letter-spacing:0.12em; }
-
-  .stat-row{ display:flex; gap:60px; flex-wrap:wrap; justify-content:center; margin:0 auto 36px; width:fit-content; }
-  .stat{ text-align:center; }
-  .stat .num{ font-family:var(--display); font-style:italic; font-weight:700; font-size:clamp(3rem, 8vw, 5.5rem); color:var(--orange-bright); line-height:1; }
-  .stat .label{ font-size:clamp(1rem, 2vw, 1.3rem); color:rgba(241,231,208,0.8); margin-top:6px; }
-
-  .traffic-light{
-    font-family:var(--display); font-style:italic; font-weight:700;
-    border-radius:50%; width:clamp(140px, 20vw, 220px); height:clamp(140px, 20vw, 220px);
-    display:flex; align-items:center; justify-content:center;
-    font-size:clamp(3rem, 8vw, 5rem);
-    background:#2ecc55; color:#000; margin-bottom:10px;
-    transition:background-color 0.3s ease, color 0.3s ease;
-    box-shadow:0 0 60px rgba(0,0,0,0.3);
-  }
-  .traffic-light.yellow{ background:#f4d35e; color:#000; }
-  .traffic-light.red{ background:#e6392b; color:#fff; }
-  .traffic-light.idle{ background:rgba(241,231,208,0.15); color:rgba(241,231,208,0.6); font-size:clamp(1.5rem, 3vw, 2rem); }
-
-  /* ---------- Splash reveal ---------- */
   .splash-overlay{
     position:fixed; inset:0; z-index:50;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -85,50 +125,34 @@
   .splash-overlay.rank-1{ background:radial-gradient(ellipse at 50% 30%, #f0d060, #b8860b 70%); }
   .splash-overlay.rank-2{ background:radial-gradient(ellipse at 50% 30%, #e6e6e6, #9a9a9a 70%); }
   .splash-overlay.rank-3{ background:radial-gradient(ellipse at 50% 30%, #e0a868, #8a5a2b 70%); }
-  .splash-overlay.rank-other{ background:radial-gradient(ellipse at 50% 30%, #4a6fa5, var(--navy-deep) 70%); }
-
   @keyframes splash-in{ from{ opacity:0; transform:scale(0.9); } to{ opacity:1; transform:scale(1); } }
-
-  .splash-trophy{ font-size:clamp(4rem, 12vw, 8rem); margin-bottom:10px; animation:bounce 1.2s ease infinite; }
-  @keyframes bounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-18px); } }
-
-  .splash-name{ font-family:var(--display); font-style:italic; font-weight:700; font-size:clamp(3rem, 9vw, 6rem); color:#fff; text-shadow:0 4px 20px rgba(0,0,0,0.4); margin:0; }
-  .splash-meta{ font-size:clamp(1.2rem, 2.5vw, 1.8rem); color:rgba(255,255,255,0.9); margin:8px 0 24px; }
-  .splash-rank{ font-family:var(--display); font-style:italic; font-weight:700; font-size:clamp(1.8rem, 4vw, 3rem); color:#fff; margin-bottom:6px; }
-  .splash-score{ font-family:var(--display); font-style:italic; font-weight:700; font-size:clamp(4rem, 12vw, 7.5rem); color:#fff; text-shadow:0 4px 24px rgba(0,0,0,0.4); }
-
+  .splash-trophy{ font-size:clamp(3.5rem, 10vw, 7rem); margin-bottom:10px; animation:bounce 1.2s ease infinite; }
+  @keyframes bounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-16px); } }
+  .splash-name{ font-family:var(--display); font-style:italic; font-weight:700; font-size:clamp(2.6rem, 8vw, 5.2rem); color:#fff; text-shadow:0 4px 20px rgba(0,0,0,0.4); margin:0; }
+  .splash-meta{ font-size:clamp(1.1rem, 2.2vw, 1.6rem); color:rgba(255,255,255,0.9); margin:8px 0 20px; }
+  .splash-rank{ font-family:var(--display); font-style:italic; font-weight:700; font-size:clamp(1.6rem, 3.5vw, 2.6rem); color:#fff; margin-bottom:6px; }
+  .splash-score{ font-family:var(--display); font-style:italic; font-weight:700; font-size:clamp(3.4rem, 10vw, 6.5rem); color:#fff; text-shadow:0 4px 24px rgba(0,0,0,0.4); }
   .confetti{ position:absolute; top:-10%; width:14px; height:14px; opacity:0.9; animation:fall linear forwards; }
   @keyframes fall{ to{ transform:translateY(115vh) rotate(360deg); opacity:0.3; } }
 </style>
 </head>
 <body>
 
-<aside class="side-panel" id="runScoreboard">
-  <h2>Current Run Scoreboard</h2>
-  <p class="empty">No submissions yet.</p>
-</aside>
-
-<div id="centerCol">
-  <h1 id="runLabel">Live Test</h1>
-  <p class="join-line">Join code: <span class="code" id="joinCodeText">\u2013</span></p>
-  <img id="qrImg" alt="QR code to join this test" style="width:180px;height:180px;margin:0 auto 28px;border-radius:8px;display:none;">
-  <div class="stat-row">
-    <div class="stat"><div class="num" id="joinedNum">0</div><div class="label">Students Joined</div></div>
-    <div class="stat"><div class="num" id="trackNum">\u2013</div><div class="label">Current Track</div></div>
-  </div>
-  <div class="traffic-light idle" id="trafficLight">Waiting</div>
+<div id="app"></div>
+<div id="ytHolder" style="position:fixed; top:-9999px; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none;">
+  <div id="ytPlayer"></div>
 </div>
-
-<aside class="side-panel" id="globalLeaderboard">
-  <h2>Global Leaderboard</h2>
-  <p class="empty">Loading\u2026</p>
-</aside>
-
 <div id="splashRoot"></div>
 
+<script>
+  window.ytApiReady = false;
+  window.onYouTubeIframeAPIReady = function(){ window.ytApiReady = true; };
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { initializeFirestore, doc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { initializeFirestore, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC1buaseorV5ZMvicSbYrzx3tz7_tos_wQ",
@@ -140,170 +164,388 @@
   };
   const app = initializeApp(firebaseConfig);
   const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+  const auth = getAuth(app);
+  const googleProvider = new GoogleAuthProvider();
+  const ADMIN_EMAILS = ["jonathan.ochoa@saisd.org", "jlk521@gmail.com"];
 
   const TOTAL_PIECES = 10;
+  const CLIP_SECONDS = 20;
+  const OFFICIAL_POINTS_PER_FIELD = 33.33;
+  const WRONG_CASE_PENALTY = 5;
+
+  const appEl = document.getElementById("app");
   const params = new URLSearchParams(window.location.search);
   const code = (params.get("code") || "").trim().toUpperCase();
 
-  const runLabelEl = document.getElementById("runLabel");
-  const joinCodeEl = document.getElementById("joinCodeText");
-  const joinedNumEl = document.getElementById("joinedNum");
-  const trackNumEl = document.getElementById("trackNum");
-  const trafficLightEl = document.getElementById("trafficLight");
-  const splashRoot = document.getElementById("splashRoot");
-
-  const qrImgEl = document.getElementById("qrImg");
-
-  if (!code) {
-    runLabelEl.textContent = "No run code given";
-    joinCodeEl.textContent = "Add ?code=XXXXX to the URL";
-  } else {
-    joinCodeEl.textContent = code;
-    const joinUrl = `https://jlk521-ctrl.github.io/music-memory/live-test.html?code=${code}`;
-    qrImgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=${encodeURIComponent(joinUrl)}`;
-    qrImgEl.style.display = "block";
-  }
-
-  let trafficTimer = null;
-  let lastAnnouncementSeen = null;
-
-  function updateTrafficLight(startedAt){
-    clearInterval(trafficTimer);
-    if (!startedAt) {
-      trafficLightEl.className = "traffic-light idle";
-      trafficLightEl.textContent = "Waiting";
-      return;
-    }
-    const tick = () => {
-      const elapsed = Math.floor((Date.now() - startedAt) / 1000);
-      const remaining = 40 - elapsed;
-      trafficLightEl.classList.remove("yellow", "red", "idle");
-      if (remaining > 20) {
-        trafficLightEl.textContent = remaining;
-      } else if (remaining >= 0) {
-        trafficLightEl.classList.add("yellow");
-        trafficLightEl.textContent = remaining;
-      } else {
-        trafficLightEl.classList.add("red");
-        trafficLightEl.textContent = "+" + Math.abs(remaining);
-      }
-    };
-    tick();
-    trafficTimer = setInterval(tick, 1000);
-  }
-
-  function trophyFor(rank){
-    if (rank === 1) return "\u{1F3C6}";
-    if (rank === 2) return "\u{1F948}";
-    if (rank === 3) return "\u{1F949}";
-    return "\u{1F3B5}";
-  }
-
-  function rankLabel(rank){
-    if (rank === 1) return "1st Place!";
-    if (rank === 2) return "2nd Place!";
-    if (rank === 3) return "3rd Place!";
-    const suffix = (rank % 10 === 1 && rank % 100 !== 11) ? "st"
-      : (rank % 10 === 2 && rank % 100 !== 12) ? "nd"
-      : (rank % 10 === 3 && rank % 100 !== 13) ? "rd" : "th";
-    return `${rank}${suffix} Place`;
-  }
-
-  function rankClass(rank){
-    if (rank === 1) return "rank-1";
-    if (rank === 2) return "rank-2";
-    if (rank === 3) return "rank-3";
-    return "rank-other";
-  }
-
-  function launchConfetti(container){
-    const colors = ["#f0b83e", "#d97e2c", "#ffffff", "#e6392b", "#2ecc55"];
-    for (let i = 0; i < 60; i++){
-      const piece = document.createElement("div");
-      piece.className = "confetti";
-      piece.style.left = Math.random() * 100 + "%";
-      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-      piece.style.animationDuration = (2.5 + Math.random() * 2) + "s";
-      piece.style.animationDelay = (Math.random() * 0.8) + "s";
-      container.appendChild(piece);
-    }
-  }
-
-  function showSplash(ann){
-    const overlay = document.createElement("div");
-    overlay.className = `splash-overlay ${rankClass(ann.rank)}`;
-    overlay.innerHTML = `
-      <div class="splash-trophy">${trophyFor(ann.rank)}</div>
-      <p class="splash-name">${ann.firstName}</p>
-      <p class="splash-meta">${ann.grade} \u00b7 ${ann.school}</p>
-      <p class="splash-rank">${rankLabel(ann.rank)}</p>
-      <p class="splash-score">${ann.score} pts</p>
-    `;
-    splashRoot.appendChild(overlay);
-    launchConfetti(overlay);
-    setTimeout(() => { overlay.remove(); }, 8000);
-  }
-
-  const runScoreboardEl = document.getElementById("runScoreboard");
-  const globalLeaderboardEl = document.getElementById("globalLeaderboard");
-
-  function renderPanelList(el, rows, emptyMsg){
-    if (!rows || rows.length === 0) { el.querySelector("ol")?.remove(); if (!el.querySelector(".empty")) el.insertAdjacentHTML("beforeend", `<p class="empty">${emptyMsg}</p>`); return; }
-    el.querySelector(".empty")?.remove();
-    let ol = el.querySelector("ol");
-    if (!ol) { ol = document.createElement("ol"); el.appendChild(ol); }
-    ol.innerHTML = rows.map((r, i) => `
-      <li>
-        <span class="rank-num">${i + 1}.</span>
-        <span>
-          <span class="sp-name">${r.firstName || "?"}</span>
-          <span class="sp-meta">${r.grade || "?"} \u00b7 ${r.school || "?"}</span>
-        </span>
-        <span class="sp-score">${r.score}</span>
-      </li>
-    `).join("");
-  }
-
-  let lastRunScoreboardSeen = null, lastGlobalLeaderboardSeen = null;
-  let isFirstSnapshot = true;
-
-  onSnapshot(doc(db, "live_runs", code), (snap) => {
-    if (!snap.exists()) return;
-    const run = snap.data();
-    runLabelEl.textContent = run.label || "Live Test";
-    trackNumEl.textContent = run.status === "finished"
-      ? "Done"
-      : run.currentTrackIndex >= 0 ? `${run.currentTrackIndex + 1} / ${TOTAL_PIECES}` : "\u2013";
-
-    updateTrafficLight(run.status === "active" && run.currentPlayStartedAt ? run.currentPlayStartedAt : null);
-
-    if (isFirstSnapshot) {
-      // On first load, just record whatever announcement already exists —
-      // don't replay it. Only genuinely NEW announcements after this point
-      // should trigger a splash.
-      lastAnnouncementSeen = run.lastAnnouncement ? run.lastAnnouncement.timestamp : null;
-    } else if (run.lastAnnouncement && run.lastAnnouncement.timestamp !== lastAnnouncementSeen) {
-      lastAnnouncementSeen = run.lastAnnouncement.timestamp;
-      showSplash(run.lastAnnouncement);
-    }
-    isFirstSnapshot = false;
-
-    // Both panels are populated only when the admin explicitly retrieves
-    // results — never a live/continuous read of raw student answers.
-    if (JSON.stringify(run.publishedRunScoreboard) !== lastRunScoreboardSeen) {
-      lastRunScoreboardSeen = JSON.stringify(run.publishedRunScoreboard);
-      renderPanelList(runScoreboardEl, run.publishedRunScoreboard, "Waiting for the teacher to retrieve results\u2026");
-    }
-    if (JSON.stringify(run.publishedGlobalLeaderboard) !== lastGlobalLeaderboardSeen) {
-      lastGlobalLeaderboardSeen = JSON.stringify(run.publishedGlobalLeaderboard);
-      renderPanelList(globalLeaderboardEl, run.publishedGlobalLeaderboard, "Waiting for the teacher to retrieve results\u2026");
+  onAuthStateChanged(auth, (user) => {
+    if (user && ADMIN_EMAILS.includes(user.email)) {
+      startDisplay();
+    } else if (user) {
+      appEl.innerHTML = `<div class="login-wrap"><div class="login-card"><h2>Not Authorized</h2><p class="status-msg">Signed in as ${user.email}, but this account isn't on the admin list.</p></div></div>`;
+      signOut(auth);
+    } else {
+      renderLogin();
     }
   });
 
+  function renderLogin(){
+    appEl.innerHTML = `
+      <div class="login-wrap">
+        <div class="login-card">
+          <h2>Public Display Sign In</h2>
+          <p class="status-msg">Sign in with your admin Google account to control this session.</p>
+          <button class="btn" id="googleSignInBtn" style="width:100%;">Sign in with Google</button>
+          <p class="status-msg" id="loginStatus"></p>
+        </div>
+      </div>
+    `;
+    document.getElementById("googleSignInBtn").addEventListener("click", async () => {
+      const statusEl = document.getElementById("loginStatus");
+      statusEl.textContent = "Opening Google sign-in\u2026";
+      try { await signInWithPopup(auth, googleProvider); }
+      catch (err) { statusEl.textContent = "Sign-in failed: " + err.message; }
+    });
+  }
 
-  if (code) {
+  function norm(s){
+    return (s || "").trim().toLowerCase().replace(/\s+/g, " ")
+      .replace(/[\u2018\u2019\u02bc]/g, "'").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+  function normCase(s){
+    return (s || "").trim().replace(/\s+/g, " ")
+      .replace(/[\u2018\u2019\u02bc]/g, "'").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+  function levenshtein(a, b){
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    return dp[m][n];
+  }
+  function gradeField(guessRaw, truthRaw, pointValue){
+    const truthCI = norm(truthRaw), guessCI = norm(guessRaw);
+    if (truthCI === "") return guessCI === "" ? pointValue : 0;
+    if (guessCI === "") return 0;
+    if (guessCI !== truthCI) {
+      const dist = levenshtein(guessCI, truthCI);
+      const threshold = Math.max(1, Math.round(truthCI.length * 0.2));
+      return dist <= threshold ? pointValue / 2 : 0;
+    }
+    return normCase(guessRaw) === normCase(truthRaw) ? pointValue : Math.max(0, pointValue - WRONG_CASE_PENALTY);
+  }
+  function gradeResponse(response, template, pieces){
+    let total = 0;
+    template.order.forEach((pieceId, i) => {
+      const truth = pieces[pieceId];
+      const ans = (response.answers && response.answers[i]) || {};
+      const pts = gradeField(ans.composer, truth.composer, OFFICIAL_POINTS_PER_FIELD)
+        + gradeField(ans.majorWork, truth.majorWork, OFFICIAL_POINTS_PER_FIELD)
+        + gradeField(ans.selectionTitle, truth.selectionTitle || "", OFFICIAL_POINTS_PER_FIELD);
+      total += Math.ceil(pts);
+    });
+    return total;
+  }
+
+  async function fetchAllPieceInfo(){
+    const [composerSnap, titleSnap, audioSnap] = await Promise.all([
+      getDocs(collection(db, "pieces_composer")),
+      getDocs(collection(db, "pieces_titles")),
+      getDocs(collection(db, "pieces_audio"))
+    ]);
+    const composers = {}, titles = {}, audio = {};
+    composerSnap.forEach(d => composers[d.id] = d.data().composer);
+    titleSnap.forEach(d => titles[d.id] = d.data());
+    audioSnap.forEach(d => audio[d.id] = d.data());
+    const pieces = {};
+    for (let i = 1; i <= TOTAL_PIECES; i++){
+      const id = String(i);
+      pieces[id] = { composer: composers[id], majorWork: titles[id]?.majorWork, selectionTitle: titles[id]?.selectionTitle || "", videoId: audio[id]?.videoId };
+    }
+    return pieces;
+  }
+
+  function slugFor(firstName, grade, school){
+    const clean = s => (s || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    return `${clean(firstName)}_${clean(grade)}_${clean(school)}`;
+  }
+
+  let ytPlayer = null, ytReady = false, playTimer = null;
+  function initYTPlayer(){
+    ytPlayer = new YT.Player("ytPlayer", {
+      height: "1", width: "1",
+      playerVars: { controls: 0, disablekb: 1, playsinline: 1 },
+      events: { onReady: () => { ytReady = true; } }
+    });
+  }
+  if (window.ytApiReady) { initYTPlayer(); } else { window.onYouTubeIframeAPIReady = initYTPlayer; }
+  function playClip(videoId, startSeconds, onDone){
+    if (!ytReady) { setTimeout(() => playClip(videoId, startSeconds, onDone), 300); return; }
+    clearTimeout(playTimer);
+    ytPlayer.loadVideoById({ videoId, startSeconds });
+    playTimer = setTimeout(() => { ytPlayer.pauseVideo(); if (onDone) onDone(); }, CLIP_SECONDS * 1000);
+  }
+
+  async function startDisplay(){
+    if (!code) { appEl.innerHTML = `<div class="login-wrap"><div class="login-card"><h2>No run code given</h2><p>Add ?code=XXXXX to the URL.</p></div></div>`; return; }
+
+    appEl.innerHTML = `<div class="login-wrap"><div class="login-card"><p class="status-msg">Loading run\u2026</p></div></div>`;
+    const runSnap = await getDoc(doc(db, "live_runs", code));
+    if (!runSnap.exists()) { appEl.innerHTML = `<div class="login-wrap"><div class="login-card"><h2>Run not found</h2></div></div>`; return; }
+    const run = runSnap.data();
+    const templateSnap = await getDoc(doc(db, "live_templates", run.templateId));
+    const template = templateSnap.data();
+    const pieces = await fetchAllPieceInfo();
+    const runMode = run.mode || "official";
+
+    appEl.innerHTML = `
+      <button class="btn small" id="signoutBtn">Sign Out</button>
+      <div id="controlsBar"></div>
+      <div id="layout">
+        <aside class="side-panel" id="runScoreboard">
+          <h2>Current Run Scoreboard</h2>
+          <button class="btn small retrieve-btn" id="retrieveRunBtn">Retrieve Current Run Scores</button>
+          <p class="empty">Not retrieved yet.</p>
+        </aside>
+        <div id="centerCol">
+          <h1>${run.label}</h1>
+          <p class="join-line">Join code: <span class="code">${code}</span></p>
+          <img id="qrImg" alt="QR code to join">
+          <div class="stat-row">
+            <div class="stat"><div class="num" id="joinedNum">0</div><div class="label">Students Joined</div></div>
+            <div class="stat"><div class="num" id="trackNum">\u2013</div><div class="label">Current Track</div></div>
+          </div>
+          <div class="traffic-light idle" id="trafficLight">Waiting</div>
+          ${runMode === "unofficial" ? `<div class="hint-panel" id="hintPanel" style="display:none;"></div>` : ""}
+        </div>
+        <aside class="side-panel" id="globalLeaderboard">
+          <h2>Global Leaderboard</h2>
+          <button class="btn small retrieve-btn" id="retrieveGlobalBtn">Retrieve Global Leaderboard</button>
+          <p class="empty">Not retrieved yet.</p>
+        </aside>
+      </div>
+    `;
+
+    document.getElementById("signoutBtn").addEventListener("click", () => signOut(auth));
+
+    const joinUrl = `https://jlk521-ctrl.github.io/music-memory/live-test.html?code=${code}`;
+    const qrImgEl = document.getElementById("qrImg");
+    qrImgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(joinUrl)}`;
+    qrImgEl.style.display = "block";
+
     onSnapshot(collection(db, "live_runs", code, "responses"), (snap) => {
-      joinedNumEl.textContent = snap.size;
+      document.getElementById("joinedNum").textContent = snap.size;
+    });
+
+    let currentIdx = -1;
+    const revealedTracks = [];
+
+    function renderControls(){
+      const bar = document.getElementById("controlsBar");
+      bar.innerHTML = `
+        ${currentIdx < 0 ? `<button class="btn small" id="beginBtn">Begin Run (Track 1)</button>` : `
+          <button class="btn small" id="playBtn">Play Track ${currentIdx + 1}</button>
+          ${currentIdx < TOTAL_PIECES - 1 ? `<button class="btn small" id="nextBtn">Next Track \u2192</button>` : `<button class="btn small" id="finishBtn">Finish Listening</button>`}
+        `}
+      `;
+      if (currentIdx < 0) {
+        document.getElementById("beginBtn").addEventListener("click", async () => {
+          await updateDoc(doc(db, "live_runs", code), { currentTrackIndex: 0, status: "active", startedAt: Date.now() });
+          currentIdx = 0;
+          document.getElementById("trackNum").textContent = `1 / ${TOTAL_PIECES}`;
+          renderControls();
+          renderHintPanel();
+        });
+      } else {
+        document.getElementById("playBtn").addEventListener("click", async () => {
+          const pieceId = template.order[currentIdx];
+          const seg = template.segments[pieceId];
+          const updates = { currentPlayStartedAt: Date.now() };
+          if (currentIdx === TOTAL_PIECES - 1) updates.lastTrackPlayedAt = Date.now();
+          await updateDoc(doc(db, "live_runs", code), updates);
+          startTrafficLight(Date.now());
+          if (runMode === "unofficial") startHintReveal(Date.now(), pieceId);
+          playClip(pieces[pieceId].videoId, seg.start, () => {});
+        });
+        const nextOrFinishId = currentIdx < TOTAL_PIECES - 1 ? "nextBtn" : "finishBtn";
+        document.getElementById(nextOrFinishId).addEventListener("click", async () => {
+          clearInterval(trafficLightInterval);
+          clearInterval(hintInterval);
+          if (runMode === "unofficial") {
+            const pieceId = template.order[currentIdx];
+            const truth = pieces[pieceId];
+            revealedTracks.unshift({ composer: truth.composer, majorWork: truth.majorWork, selectionTitle: truth.selectionTitle });
+          }
+          if (nextOrFinishId === "nextBtn") {
+            currentIdx += 1;
+            await updateDoc(doc(db, "live_runs", code), { currentTrackIndex: currentIdx });
+            document.getElementById("trackNum").textContent = `${currentIdx + 1} / ${TOTAL_PIECES}`;
+            renderControls();
+            renderHintPanel();
+          } else {
+            await updateDoc(doc(db, "live_runs", code), { status: "finished" });
+            document.getElementById("trackNum").textContent = "Done";
+            renderControls();
+            renderHintPanel();
+          }
+        });
+      }
+    }
+
+    let trafficLightInterval = null;
+    function startTrafficLight(startedAt){
+      clearInterval(trafficLightInterval);
+      const el = document.getElementById("trafficLight");
+      const tick = () => {
+        const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+        const remaining = 40 - elapsed;
+        el.classList.remove("yellow", "red", "idle");
+        if (remaining > 20) el.textContent = remaining;
+        else if (remaining >= 0) { el.classList.add("yellow"); el.textContent = remaining; }
+        else { el.classList.add("red"); el.textContent = "+" + Math.abs(remaining); }
+      };
+      tick();
+      trafficLightInterval = setInterval(tick, 1000);
+    }
+
+    let hintInterval = null;
+    function renderHintPanel(){
+      const panel = document.getElementById("hintPanel");
+      if (!panel) return;
+      if (currentIdx < 0) { panel.style.display = "none"; return; }
+      panel.style.display = "block";
+      panel.innerHTML = `
+        <div class="hint-label">HINTS \u2014 TRACK ${currentIdx + 1}</div>
+        <div id="hintComposer" class="hint-row"></div>
+        <div id="hintMajor" class="hint-row"></div>
+        <div id="hintSelection" class="hint-row"></div>
+        ${revealedTracks.length ? `<div class="revealed-list">${revealedTracks.map((t, i) => `<div>Track ${currentIdx - i}: <strong>${t.composer}</strong> \u2014 ${t.majorWork}${t.selectionTitle ? ` (${t.selectionTitle})` : ""}</div>`).join("")}</div>` : ""}
+      `;
+      renderHintRow("hintComposer", "", 0);
+      renderHintRow("hintMajor", "", 0);
+      renderHintRow("hintSelection", "", 0);
+    }
+
+    function renderHintRow(elId, answer, revealedCount){
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.innerHTML = answer.split("").map((ch, i) => {
+        if (ch === " ") return `<span class="hint-cell space"></span>`;
+        return `<span class="hint-cell">${i < revealedCount ? ch : ""}</span>`;
+      }).join("");
+    }
+
+    function startHintReveal(startedAt, pieceId){
+      clearInterval(hintInterval);
+      const truth = pieces[pieceId];
+      const answers = { composer: truth.composer, major: truth.majorWork, selection: truth.selectionTitle || "" };
+      const tick = () => {
+        const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+        const ticks = elapsed >= 10 ? elapsed - 10 + 1 : 0;
+        renderHintRow("hintComposer", answers.composer, ticks);
+        renderHintRow("hintMajor", answers.major, ticks);
+        if (answers.selection) renderHintRow("hintSelection", answers.selection, ticks);
+      };
+      tick();
+      hintInterval = setInterval(tick, 1000);
+    }
+
+    currentIdx = run.currentTrackIndex ?? -1;
+    document.getElementById("trackNum").textContent = run.status === "finished" ? "Done" : currentIdx >= 0 ? `${currentIdx + 1} / ${TOTAL_PIECES}` : "\u2013";
+    renderControls();
+    renderHintPanel();
+
+    function trophyFor(rank){ return rank === 1 ? "\u{1F3C6}" : rank === 2 ? "\u{1F948}" : rank === 3 ? "\u{1F949}" : "\u{1F3B5}"; }
+    function rankLabel(rank){
+      if (rank === 1) return "1st Place!";
+      if (rank === 2) return "2nd Place!";
+      if (rank === 3) return "3rd Place!";
+      return `${rank}th Place`;
+    }
+    function rankClass(rank){ return rank === 1 ? "rank-1" : rank === 2 ? "rank-2" : "rank-3"; }
+    function launchConfetti(container){
+      const colors = ["#f0b83e", "#d97e2c", "#ffffff", "#e6392b", "#2ecc55"];
+      for (let i = 0; i < 60; i++){
+        const p = document.createElement("div");
+        p.className = "confetti";
+        p.style.left = Math.random() * 100 + "%";
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.animationDuration = (2.5 + Math.random() * 2) + "s";
+        p.style.animationDelay = (Math.random() * 0.5) + "s";
+        container.appendChild(p);
+      }
+    }
+    function showSplash(entry, rank, durationMs){
+      return new Promise(resolve => {
+        const overlay = document.createElement("div");
+        overlay.className = `splash-overlay ${rankClass(rank)}`;
+        overlay.innerHTML = `
+          <div class="splash-trophy">${trophyFor(rank)}</div>
+          <p class="splash-name">${entry.firstName}</p>
+          <p class="splash-meta">${entry.grade} \u00b7 ${entry.school}</p>
+          <p class="splash-rank">${rankLabel(rank)}</p>
+          <p class="splash-score">${entry.score} pts</p>
+        `;
+        document.getElementById("splashRoot").appendChild(overlay);
+        launchConfetti(overlay);
+        setTimeout(() => { overlay.remove(); resolve(); }, durationMs);
+      });
+    }
+
+    function renderList(el, rows, maskTop3){
+      if (rows.length === 0) { el.querySelector("ol")?.remove(); if (!el.querySelector(".empty")) el.insertAdjacentHTML("beforeend", `<p class="empty">No scores yet.</p>`); return; }
+      el.querySelector(".empty")?.remove();
+      let ol = el.querySelector("ol");
+      if (!ol) { ol = document.createElement("ol"); el.appendChild(ol); }
+      ol.innerHTML = rows.map((r, i) => {
+        const rank = i + 1;
+        const masked = maskTop3 && rank <= 3;
+        return masked
+          ? `<li class="masked">${rank}. \u2013 to be revealed \u2013</li>`
+          : `<li><span class="rank-num">${rank}.</span><span><span class="sp-name">${r.firstName}</span><span class="sp-meta">${r.grade} \u00b7 ${r.school}</span></span><span class="sp-score">${r.score}</span></li>`;
+      }).join("");
+    }
+
+    async function retrieveAndReveal(panelEl, rows){
+      renderList(panelEl, rows, rows.length >= 3);
+      const top3 = rows.slice(0, 3);
+      const durations = [3000, 5000, 10000];
+      for (let i = top3.length - 1; i >= 0; i--) {
+        await showSplash(top3[i], i + 1, durations[i]);
+      }
+      renderList(panelEl, rows, false);
+    }
+
+    document.getElementById("retrieveRunBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("retrieveRunBtn");
+      btn.disabled = true;
+      const responsesSnap = await getDocs(collection(db, "live_runs", code, "responses"));
+      const approvedSnap = await getDocs(collection(db, "leaderboard_approved"));
+      const approvedSlugs = new Set();
+      approvedSnap.forEach(d => approvedSlugs.add(d.id));
+      const rows = [];
+      responsesSnap.forEach(d => {
+        const r = d.data();
+        if (!r.firstName) return;
+        const slug = slugFor(r.firstName, r.grade, r.school);
+        if (!approvedSlugs.has(slug)) return;
+        rows.push({ firstName: r.firstName, grade: r.grade, school: r.school, score: gradeResponse(r, template, pieces) });
+      });
+      rows.sort((a, b) => b.score - a.score);
+      await retrieveAndReveal(document.getElementById("runScoreboard"), rows);
+      btn.disabled = false;
+    });
+
+    document.getElementById("retrieveGlobalBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("retrieveGlobalBtn");
+      btn.disabled = true;
+      const field = runMode === "official" ? "officialBestScore" : "unofficialBestScore";
+      const lbSnap = await getDocs(query(collection(db, "live_templates", run.templateId, "leaderboard"), orderBy(field, "desc"), limit(15)));
+      const rows = [];
+      lbSnap.forEach(d => { const r = d.data(); if (typeof r[field] === "number") rows.push({ firstName: r.firstName, grade: r.grade, school: r.school, score: r[field] }); });
+      await retrieveAndReveal(document.getElementById("globalLeaderboard"), rows);
+      btn.disabled = false;
     });
   }
 </script>
