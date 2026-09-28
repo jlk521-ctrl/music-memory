@@ -409,8 +409,10 @@
         const code = generateJoinCode();
         statusEl.textContent = "Creating\u2026";
         try {
+          const templateSnap = await getDoc(doc(db, "live_templates", templateId));
+          const order = templateSnap.data().order;
           await setDoc(doc(db, "live_runs", code), {
-            templateId, label, mode, status: "waiting", currentTrackIndex: -1, startedAt: null, createdAt: Date.now()
+            templateId, label, mode, order, status: "waiting", currentTrackIndex: -1, startedAt: null, createdAt: Date.now()
           });
           activeRunCode = code;
           renderRunsTab();
