@@ -71,7 +71,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-  import { initializeFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { initializeFirestore, doc, getDoc, setDoc, onSnapshot, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC1buaseorV5ZMvicSbYrzx3tz7_tos_wQ",
@@ -85,14 +85,67 @@
   const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
 
   const TOTAL_PIECES = 10;
+  const OFFICIAL_POINTS_PER_FIELD = 33.33;
+  const WRONG_CASE_PENALTY = 5;
+
+  function norm(s){
+    return (s || "").trim().toLowerCase().replace(/\s+/g, " ")
+      .replace(/[\u2018\u2019\u02bc]/g, "'").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+  function normCase(s){
+    return (s || "").trim().replace(/\s+/g, " ")
+      .replace(/[\u2018\u2019\u02bc]/g, "'").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+  function levenshtein(a, b){
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    return dp[m][n];
+  }
+  function gradeField(guessRaw, truthRaw, pointValue){
+    const truthCI = norm(truthRaw), guessCI = norm(guessRaw);
+    if (truthCI === "") return guessCI === "" ? pointValue : 0;
+    if (guessCI === "") return 0;
+    if (guessCI !== truthCI) {
+      const dist = levenshtein(guessCI, truthCI);
+      const threshold = Math.max(1, Math.round(truthCI.length * 0.2));
+      return dist <= threshold ? pointValue / 2 : 0;
+    }
+    return normCase(guessRaw) === normCase(truthRaw) ? pointValue : Math.max(0, pointValue - WRONG_CASE_PENALTY);
+  }
+  function creditLabel(pts){
+    if (pts === OFFICIAL_POINTS_PER_FIELD) return "";
+    if (pts === OFFICIAL_POINTS_PER_FIELD - WRONG_CASE_PENALTY) return " (wrong capitalization)";
+    if (pts > 0) return " (misspelled \u2014 half credit)";
+    return "";
+  }
+
+  async function fetchAllPieceInfo(){
+    const [composerSnap, titleSnap] = await Promise.all([
+      getDocs(collection(db, "pieces_composer")),
+      getDocs(collection(db, "pieces_titles"))
+    ]);
+    const composers = {}, titles = {};
+    composerSnap.forEach(d => composers[d.id] = d.data().composer);
+    titleSnap.forEach(d => titles[d.id] = d.data());
+    const pieces = {};
+    for (let i = 1; i <= TOTAL_PIECES; i++){
+      const id = String(i);
+      pieces[id] = { composer: composers[id], majorWork: titles[id]?.majorWork, selectionTitle: titles[id]?.selectionTitle || "" };
+    }
+    return pieces;
+  }
+
+  const appEl = document.getElementById("app");
   const GRADE_OPTIONS = ["2nd Grade", "3rd Grade", "4th Grade", "5th Grade", "Teacher"];
   const SCHOOL_OPTIONS = [
     "Belaire", "Bonham", "Bowie", "Bradford", "Crockett", "Fannin",
     "Fort Concho", "Glenmore", "Goliad", "Holiman", "Lamar",
     "McGill", "Reagan", "San Jacinto", "Santa Rita"
   ];
-
-  const appEl = document.getElementById("app");
 
   /* ============================================
      LOCAL STORAGE — the source of truth for "did I lose my answer"
@@ -197,7 +250,15 @@
 
     function render(){
       if (local.submitted) {
-        appEl.innerHTML = `<div class="card submitted-banner">Answers submitted! You can close this page.</div>`;
+        appEl.innerHTML = `
+          <div class="card submitted-banner">Answers submitted! You can close this page.</div>
+          <div style="text-align:center;">
+            <button class="btn" id="seeResultsBtn">See My Results</button>
+            <p class="sync-status" id="resultsStatus"></p>
+          </div>
+          <div id="resultsPanel"></div>
+        `;
+        document.getElementById("seeResultsBtn").addEventListener("click", showMyResults);
         return;
       }
 
@@ -281,6 +342,57 @@
         scheduleSync();
       }
       render();
+    }
+
+    async function showMyResults(){
+      const statusEl = document.getElementById("resultsStatus");
+      const panel = document.getElementById("resultsPanel");
+      const btn = document.getElementById("seeResultsBtn");
+      btn.disabled = true;
+      statusEl.textContent = "Checking\u2026";
+      try {
+        const runSnap = await getDoc(doc(db, "live_runs", code));
+        const runData = runSnap.data();
+        if (runData.status !== "finished") {
+          statusEl.textContent = "Results will be available once your teacher finishes the listening portion for the whole class.";
+          btn.disabled = false;
+          return;
+        }
+        if (!runData.order) {
+          statusEl.textContent = "Results aren't available for this session.";
+          btn.disabled = false;
+          return;
+        }
+        const pieces = await fetchAllPieceInfo();
+        let total = 0;
+        const rows = runData.order.map((pieceId, i) => {
+          const truth = pieces[pieceId];
+          const ans = local.answers[i] || {};
+          const composerPts = gradeField(ans.composer, truth.composer, OFFICIAL_POINTS_PER_FIELD);
+          const majorPts = gradeField(ans.majorWork, truth.majorWork, OFFICIAL_POINTS_PER_FIELD);
+          const selPts = gradeField(ans.selectionTitle, truth.selectionTitle || "", OFFICIAL_POINTS_PER_FIELD);
+          const trackScore = Math.ceil(composerPts + majorPts + selPts);
+          total += trackScore;
+          const allCorrect = composerPts === OFFICIAL_POINTS_PER_FIELD && majorPts === OFFICIAL_POINTS_PER_FIELD && selPts === OFFICIAL_POINTS_PER_FIELD;
+          return `
+            <div class="track-block" style="padding:12px 0;">
+              <strong>Track ${i + 1}: ${allCorrect ? "\u2713" : "\u2717"} ${trackScore} pts</strong><br>
+              <span style="color:var(--accent-muted);">${truth.composer}</span> \u2014 ${truth.majorWork}${truth.selectionTitle ? ` (${truth.selectionTitle})` : ""}<br>
+              <span style="font-size:0.85rem;">
+                Composer: ${ans.composer || "(blank)"}${creditLabel(composerPts)}<br>
+                Major Work: ${ans.majorWork || "(blank)"}${creditLabel(majorPts)}<br>
+                Selection Title: ${ans.selectionTitle || "(blank)"}${creditLabel(selPts)}
+              </span>
+            </div>
+          `;
+        }).join("");
+        panel.innerHTML = `<div class="card"><h2 style="text-align:center;font-family:var(--display);font-style:italic;color:var(--navy-text);">Score: ${total} / ${TOTAL_PIECES * 100}</h2>${rows}</div>`;
+        statusEl.textContent = "";
+        btn.style.display = "none";
+      } catch (err) {
+        statusEl.textContent = "Couldn't load results: " + err.message;
+        btn.disabled = false;
+      }
     }
   }
 </script>
