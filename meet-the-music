@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Meet the Music — San Angelo ISD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+
+  /* Same design tokens as the homepage, so the two pages read as one site */
+  :root{
+    --navy:#122341;
+    --navy-deep:#0a1526;
+    --navy-text:#1d5099;
+    --parchment:#f2efe6;
+    --parchment-dim:#e6e0cf;
+    --orange:#d97e2c;
+    --orange-bright:#f0b83e;
+    --ink:#1c1712;
+    --accent-muted:#8a5a2b;
+    --display:'Fraunces', serif;
+    --body:'Libre Caslon Text', serif;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; color-scheme:light; font-size:400%; }
+
+  body{
+    margin:0;
+    background:var(--parchment);
+    color:var(--ink);
+    font-family:var(--body);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  a{ color:inherit; text-decoration:none; }
+  img,svg{ display:block; max-width:100%; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(240,184,62,0.18), transparent 60%),
+      linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color:var(--parchment);
+    padding:64px 24px 52px;
+    text-align:center;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:repeating-linear-gradient(
+      0deg,
+      transparent 0px, transparent 41px,
+      rgba(241,231,208,0.045) 41px, rgba(241,231,208,0.045) 42px
+    );
+    pointer-events:none;
+  }
+
+  .flourish{
+    width:180px;
+    height:24px;
+    margin:0 auto 24px;
+    position:relative;
+    z-index:1;
+  }
+  .flourish path{
+    stroke:var(--orange-bright);
+    stroke-width:1.4;
+    fill:none;
+    stroke-dasharray:260;
+    stroke-dashoffset:260;
+    animation:draw 1.4s ease-out forwards;
+  }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+
+  .hero h1{
+    position:relative;
+    z-index:1;
+    font-family:var(--display);
+    font-weight:600;
+    font-style:italic;
+    font-size:clamp(2.2rem, 5.5vw, 3.6rem);
+    margin:0 0 12px;
+    color:var(--parchment);
+  }
+
+  .hero p{
+    position:relative;
+    z-index:1;
+    font-size:0.98rem;
+    color:rgba(241,231,208,0.78);
+    margin:0;
+    max-width:1000px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+
+  .hero .season-label{
+    position:relative; z-index:1;
+    font-size:0.85rem; letter-spacing:0.04em;
+    color:var(--orange-bright); margin:0 auto 8px;
+    text-align:center;
+  }
+
+  /* ---------- Piece list ---------- */
+  main{
+    max-width:1300px;
+    margin:0 auto;
+    padding:60px 30px 80px;
+  }
+
+  .piece{
+    display:flex;
+    gap:24px;
+    padding:40px 0;
+    border-bottom:1px solid rgba(18,35,65,0.14);
+  }
+  .piece:last-child{ border-bottom:none; }
+
+  .piece .num{
+    font-family:var(--display);
+    font-style:italic;
+    color:var(--orange);
+    font-size:1.3rem;
+    min-width:28px;
+    flex-shrink:0;
+  }
+
+  .piece .body{ min-width:0; flex-grow:1; }
+
+  .piece .composer-name{
+    font-weight:700;
+    color:var(--navy-text);
+    display:block;
+    font-size:1.05rem;
+  }
+
+  .piece .composer-blurb{
+    margin:4px 0 12px;
+    font-size:0.92rem;
+    color:#4a3d33;
+  }
+
+  .piece .work-title{
+    font-style:italic;
+    display:block;
+    color:#4a3d33;
+    font-size:1.02rem;
+    margin-bottom:4px;
+  }
+
+  .piece .work-blurb{
+    margin:0 0 12px;
+    font-size:0.92rem;
+    color:#4a3d33;
+  }
+
+  .listen-link{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    font-size:0.85rem;
+    color:var(--accent-muted);
+    border-bottom:1px solid var(--orange);
+    padding-bottom:1px;
+    transition:color 0.15s ease, border-color 0.15s ease;
+  }
+  .listen-link:hover, .listen-link:focus-visible{
+    color:var(--navy);
+    border-bottom-color:var(--navy-text);
+  }
+  .listen-link svg{ width:14px; height:14px; flex-shrink:0; }
+
+  /* ---------- Footer ---------- */
+  footer{
+    background:var(--navy-deep);
+    color:rgba(241,231,208,0.6);
+    text-align:center;
+    padding:28px 24px;
+    font-size:0.85rem;
+  }
+  footer strong{ color:var(--orange-bright); font-weight:400; font-style:italic; font-family:var(--display); }
+
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <svg class="flourish" viewBox="0 0 180 24" aria-hidden="true">
+    <path d="M2,12 C40,2 60,22 90,12 C120,2 140,22 178,12"/>
+  </svg>
+  <p class="season-label">Music Memory 26-27</p>
+  <h1>Meet the Music</h1>
+  <p>Get to know each composer and piece before you start studying — press play and read along.</p>
+</header>
+
+<main id="pieceList"><!-- rendered from PIECES below --></main>
+
+<footer>
+  <strong>UIL A+ Music Memory</strong> &middot; 2026&ndash;2027
+</footer>
+
+<script>
+  /* ============================================
+     EDIT EACH SEASON — one entry per work, in UIL's published order
+     ============================================ */
+  const PIECES = [
+    {
+      composer: "Beethoven",
+      composerBlurb: "Ludwig van Beethoven was a German composer and pianist whose work bridged the Classical and Romantic eras and reshaped the course of Western music.",
+      work: "F\u00fcr Elise",
+      workBlurb: "One of the most recognizable piano pieces ever written, this short bagatelle circles a simple, haunting melody between more turbulent middle passages.",
+      youtube: "https://youtu.be/s71I_EWJk7I"
+    },
+    {
+      composer: "Mozart",
+      composerBlurb: "Wolfgang Amadeus Mozart was an Austrian composer of the Classical era, celebrated for his extraordinary melodic gift across nearly every musical form.",
+      work: "Eine kleine Nachtmusik, Movement 1",
+      workBlurb: "One of Mozart\u2019s most famous works, this bright, elegant serenade movement is known for its crisp string writing and effortlessly cheerful themes.",
+      youtube: "https://youtu.be/fRrsD4RH9SY"
+    },
+    {
+      composer: "Verdi",
+      composerBlurb: "Giuseppe Verdi was an Italian composer whose operas remain central to the repertoire for their dramatic power and unforgettable melodies.",
+      work: "Aida \u2014 \u201cTriumphal March\u201d",
+      workBlurb: "This grand ceremonial scene celebrates a returning army with blazing brass fanfares, choral singing, and some of opera\u2019s most spectacular pageantry.",
+      youtube: "https://youtu.be/HqNa9Cpa3L8"
+    },
+    {
+      composer: "Saint-Sa\u00ebns",
+      composerBlurb: "Camille Saint-Sa\u00ebns was a French composer, pianist, and organist admired for his versatility and refined orchestral craftsmanship.",
+      work: "Carnival of the Animals \u2014 Finale",
+      workBlurb: "The finale brings back themes from earlier movements in a whirlwind of orchestral color, closing this musical parade of animals with high-spirited energy.",
+      youtube: "https://youtu.be/3SSQz_CZ8Jk"
+    },
+    {
+      composer: "Beach",
+      composerBlurb: "Amy Beach was an American composer and pianist, the first American woman to achieve wide recognition for large-scale concert compositions.",
+      work: "Four Sketches \u2014 \u201cIn Autumn\u201d",
+      workBlurb: "A reflective piano miniature from her Four Sketches, \u201cIn Autumn\u201d moves through richly harmonized, flowing lines that evoke the quiet mood of the season.",
+      youtube: "https://youtu.be/FlfqfsDasSM"
+    },
+    {
+      composer: "Haydn",
+      composerBlurb: "Franz Joseph Haydn was an Austrian composer often called the \u201cFather of the Symphony\u201d for his central role in shaping the Classical symphonic form.",
+      work: "Symphony No. 88, Movement 4",
+      workBlurb: "The lively final movement is built on a spirited, dance-like theme that Haydn develops with wit, energy, and clever orchestral surprises.",
+      youtube: "https://youtu.be/Qq1w8x7Qkmc"
+    },
+    {
+      composer: "Sousa",
+      composerBlurb: "John Philip Sousa was an American composer and bandmaster known as \u201cThe March King\u201d for his hugely popular military and patriotic marches.",
+      work: "Stars and Stripes Forever",
+      workBlurb: "Among the most famous marches ever written for concert band, it features a soaring piccolo countermelody in its rousing final strain.",
+      youtube: "https://youtu.be/a-7XWhyvIpE"
+    },
+    {
+      composer: "Tchaikovsky",
+      composerBlurb: "Pyotr Ilyich Tchaikovsky was a Russian Romantic composer renowned for his gift for melody and his contributions to ballet and orchestral music.",
+      work: "The Nutcracker \u2014 Overture",
+      workBlurb: "This bright, sparkling overture opens the beloved holiday ballet, its light orchestration famously leaving out the low strings entirely.",
+      youtube: "https://youtu.be/Mjbrf141mV8"
+    },
+    {
+      composer: "Bach",
+      composerBlurb: "Johann Sebastian Bach was a German composer of the late Baroque era, prized for his mastery of counterpoint and his enormous body of sacred and instrumental music.",
+      work: "Cantata No. 147 \u2014 \u201cJesu, Joy of Man\u2019s Desiring\u201d",
+      workBlurb: "Written as part of a church cantata, this chorale melody has become one of Bach\u2019s best-loved works, its warm vocal line carried along by a steady, dancelike accompaniment.",
+      youtube: "https://youtu.be/HSZg6sQ5J2k"
+    },
+    {
+      composer: "Vivaldi",
+      composerBlurb: "Antonio Vivaldi was an Italian Baroque composer and violinist celebrated for his vivid, pictorial instrumental concertos.",
+      work: "The Four Seasons \u2014 Spring, Movement 1",
+      workBlurb: "This movement paints the joyful arrival of spring, with trilling violins evoking birdsong and a brief storm that quickly gives way to sunshine again.",
+      youtube: "https://youtu.be/e3nSvIiBNFo"
+    }
+  ];
+
+  /* ============================================
+     RENDER — no need to edit below this line
+     ============================================ */
+  const list = document.getElementById("pieceList");
+  PIECES.forEach((p, i) => {
+    const el = document.createElement("div");
+    el.className = "piece";
+    el.innerHTML = `
+      <span class="num">${i + 1}</span>
+      <div class="body">
+        <span class="composer-name">${p.composer}</span>
+        <p class="composer-blurb">${p.composerBlurb}</p>
+        <span class="work-title">${p.work}</span>
+        <p class="work-blurb">${p.workBlurb}</p>
+        <a class="listen-link" href="${p.youtube}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z"/></svg>
+          Listen to this piece
+        </a>
+      </div>
+    `;
+    list.appendChild(el);
+  });
+</script>
+
+</body>
+</html>
