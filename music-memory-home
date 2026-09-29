@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Music Memory — San Angelo ISD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+
+  /* ============================================
+     CONFIG — edit these each season
+     ============================================ */
+  :root{
+    --navy:#122341;
+    --navy-deep:#0a1526;
+    --navy-text:#1d5099;
+    --parchment:#f2efe6;
+    --parchment-dim:#e6e0cf;
+    --orange:#d97e2c;
+    --orange-bright:#f0b83e;
+    --ink:#1c1712;
+    --accent-muted:#8a5a2b;
+    --hairline:rgba(241,231,208,0.16);
+    --shadow:0 18px 40px -20px rgba(0,0,0,0.55);
+    --display:'Fraunces', serif;
+    --body:'Libre Caslon Text', serif;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html{ scroll-behavior:smooth; color-scheme:light; font-size:100%; }
+
+  body{
+    margin:0;
+    background:var(--parchment);
+    color:var(--ink);
+    font-family:var(--body);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  a{ color:inherit; text-decoration:none; }
+
+  img,svg{ display:block; max-width:100%; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(201,162,75,0.18), transparent 60%),
+      linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color:var(--parchment);
+    padding:76px 24px 64px;
+    text-align:center;
+    overflow:hidden;
+  }
+
+  .hero::before{
+    /* faint engraved staff lines, purely decorative */
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:repeating-linear-gradient(
+      0deg,
+      transparent 0px, transparent 41px,
+      rgba(241,231,208,0.045) 41px, rgba(241,231,208,0.045) 42px
+    );
+    pointer-events:none;
+  }
+
+  .flourish{
+    width:180px;
+    height:24px;
+    margin:0 auto 28px;
+    position:relative;
+    z-index:1;
+  }
+  .flourish path{
+    stroke:var(--orange-bright);
+    stroke-width:1.4;
+    fill:none;
+    stroke-dasharray:260;
+    stroke-dashoffset:260;
+    animation:draw 1.4s ease-out forwards;
+  }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+
+  .hero h1{
+    position:relative;
+    z-index:1;
+    font-family:var(--display);
+    font-weight:600;
+    font-style:italic;
+    font-size:clamp(2.6rem, 6vw, 4.6rem);
+    letter-spacing:0.01em;
+    margin:0 0 14px;
+    color:var(--parchment);
+  }
+
+  .hero .place{
+    position:relative;
+    z-index:1;
+    font-size:1.05rem;
+    letter-spacing:0.04em;
+    color:var(--orange-bright);
+    margin:0 0 4px;
+  }
+
+  .hero .season{
+    position:relative;
+    z-index:1;
+    font-size:0.95rem;
+    color:rgba(241,231,208,0.75);
+    margin:0;
+  }
+
+  /* ---------- Nav / program sections ---------- */
+  .sections{
+    max-width:1600px;
+    margin:-42px auto 0;
+    padding:0 24px 8px;
+    position:relative;
+    z-index:2;
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:28px;
+  }
+
+  /* ---------- Leaderboard row ---------- */
+  .lb-row{
+    max-width:1600px;
+    margin:-42px auto 32px;
+    padding:0 24px 8px;
+    position:relative;
+    z-index:2;
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:28px;
+  }
+  @media (max-width:920px){ .lb-row{ grid-template-columns:1fr; } }
+
+  .lb-block{
+    background:#fff;
+    border:1px solid rgba(18,35,65,0.12);
+    border-radius:6px;
+    padding:20px;
+    box-shadow:0 14px 30px -18px rgba(0,0,0,0.25);
+    position:relative;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .about-block{
+    background:#fff;
+    border:1px solid rgba(18,35,65,0.12);
+    border-radius:6px;
+    padding:24px;
+    box-shadow:0 14px 30px -18px rgba(0,0,0,0.25);
+  }
+  .about-block h2{ font-family:var(--display); font-style:italic; color:var(--navy-text); margin:0 0 10px; font-size:1.4rem; }
+  .about-block p{ font-size:0.92rem; color:#4a3d33; }
+
+  .lb-top-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .lb-scope-toggle, .lb-run-toggle, .lb-mode-tabs{ display:flex; border:1px solid rgba(18,35,65,0.2); border-radius:20px; overflow:hidden; }
+  .lb-scope-toggle button, .lb-run-toggle button, .lb-mode-tabs button{
+    background:#fff; border:none; padding:5px 12px; font-size:0.75rem; color:var(--ink); cursor:pointer;
+  }
+  .lb-scope-toggle button.active, .lb-run-toggle button.active, .lb-mode-tabs button.active{
+    background:var(--navy); color:var(--parchment);
+  }
+  .lb-mode-tabs{ margin:0 auto; }
+  .lb-mode-tabs button{ font-size:0.85rem; padding:7px 18px; font-weight:700; }
+
+  .lb-campus-select, .lb-challenge-select, .lb-run-select{
+    width:100%; padding:8px; margin-bottom:10px; border:1px solid rgba(18,35,65,0.2); border-radius:4px;
+    font-family:var(--body); font-size:0.85rem; background:var(--parchment);
+  }
+  .lb-challenge-select{ font-family:var(--display); font-style:italic; font-size:1rem; color:var(--navy-text); border:none; border-bottom:2px solid var(--orange); background:transparent; padding:6px 4px; text-align:center; cursor:pointer; }
+
+  .lb-list-wrap{ flex-grow:1; max-height:340px; overflow-y:auto; }
+  .lb-list{ list-style:none; margin:0; padding:0; }
+  .lb-list li{ display:flex; align-items:baseline; gap:8px; padding:7px 0; border-bottom:1px solid rgba(18,35,65,0.08); font-size:0.88rem; }
+  .lb-list li:last-child{ border-bottom:none; }
+  .lb-list .rank-num{ font-family:var(--display); font-style:italic; color:var(--orange); min-width:1.6em; }
+  .lb-list .sp-name{ font-weight:700; color:var(--navy); flex-grow:1; }
+  .lb-list .sp-meta{ font-size:0.78em; color:#8a7a63; display:block; }
+  .lb-list .sp-score{ font-family:var(--display); font-style:italic; color:var(--orange); }
+  .lb-empty{ text-align:center; color:#8a7a63; font-size:0.88rem; padding:14px 0; }
+
+  .lb-expand-btn{
+    position:absolute; top:16px; right:16px; background:none; border:none; cursor:pointer;
+    font-size:1.1rem; color:var(--navy-text);
+  }
+
+  .lb-overlay{
+    position:fixed; inset:0; background:rgba(10,21,38,0.92); z-index:80;
+    display:flex; align-items:center; justify-content:center; padding:30px;
+    font-size:250%;
+  }
+  .lb-overlay .lb-block{ width:100%; max-width:800px; max-height:90vh; }
+  .lb-overlay .lb-list-wrap{ max-height:60vh; }
+  .lb-overlay .lb-list li{ font-size:1.1rem; }
+  .lb-close-btn{
+    position:absolute; top:16px; left:16px; background:none; border:none; cursor:pointer;
+    font-size:1.3rem; color:var(--bad, #b3402f);
+  }
+
+  @media (max-width:920px){
+    .sections{ grid-template-columns:repeat(2, 1fr); }
+  }
+  @media (max-width:560px){
+    .sections{ grid-template-columns:1fr; }
+  }
+
+  .card{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    background:var(--parchment);
+    border:1px solid rgba(59,18,32,0.14);
+    border-radius:4px;
+    padding:24px 20px;
+    box-shadow:var(--shadow);
+    transition:transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+
+  a.card:hover, a.card:focus-visible{
+    transform:translateY(-4px);
+    border-color:var(--orange);
+    box-shadow:0 22px 46px -18px rgba(0,0,0,0.5);
+  }
+
+  a.card:focus-visible{ outline:2px solid var(--accent-muted); outline-offset:3px; }
+
+  .card .icon{
+    width:34px;
+    height:34px;
+    color:var(--navy-text);
+  }
+  .card .icon svg{ width:100%; height:100%; }
+
+  .card h2{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:1.15rem;
+    margin:0;
+    color:var(--navy-text);
+  }
+
+  .card p{
+    margin:0;
+    font-size:0.92rem;
+    color:#4a3d33;
+    flex-grow:1;
+  }
+
+  .card .status{
+    font-size:0.78rem;
+    color:var(--accent-muted);
+    font-style:italic;
+  }
+
+  .card .premium-note{
+    display:block;
+    font-size:0.78rem;
+    color:#b3402f;
+    font-weight:700;
+    margin-top:4px;
+  }
+
+  .card.pending{
+    opacity:0.82;
+    border-style:dashed;
+  }
+  .card.pending .status{ color:#8a5a2b; }
+
+  /* ---------- Repertoire ---------- */
+  .repertoire{
+    max-width:1500px;
+    margin:120px auto 0;
+    padding:0 24px 60px;
+  }
+
+  .repertoire-head{
+    text-align:center;
+    margin-bottom:44px;
+  }
+
+  .repertoire-head h2{
+    font-family:var(--display);
+    font-style:italic;
+    font-weight:600;
+    font-size:clamp(1.9rem, 3.6vw, 2.6rem);
+    color:var(--navy-text);
+    margin:0 0 10px;
+  }
+
+  .repertoire-head p{
+    margin:0;
+    color:#5a4c3f;
+    font-size:0.98rem;
+  }
+
+  .rep-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    column-gap:48px;
+  }
+
+  @media (max-width:900px){
+    .rep-grid{ grid-template-columns:repeat(2, 1fr); }
+  }
+  @media (max-width:600px){
+    .rep-grid{ grid-template-columns:1fr; }
+  }
+
+  .rep-item{
+    display:flex;
+    gap:16px;
+    padding:24px 0;
+    border-bottom:1px solid rgba(59,18,32,0.14);
+    align-items:baseline;
+  }
+
+  .rep-item .num{
+    font-family:var(--display);
+    font-style:italic;
+    color:var(--orange);
+    font-size:1.1rem;
+    min-width:22px;
+    flex-shrink:0;
+  }
+
+  .rep-item .details{ min-width:0; }
+
+  .rep-item .composer{
+    font-weight:700;
+    color:var(--navy-text);
+    display:block;
+  }
+
+  .rep-item .work{
+    font-style:italic;
+    display:block;
+    color:#4a3d33;
+  }
+
+  a.rep-item-link, a.work.listen, a.composer.listen, a.mnemonic.listen{
+    text-decoration:none;
+  }
+
+  a.work.listen, a.composer.listen, a.mnemonic.listen{
+    border-bottom:1px solid transparent;
+    transition:border-color 0.15s ease, color 0.15s ease;
+  }
+  a.work.listen:hover, a.work.listen:focus-visible,
+  a.composer.listen:hover, a.composer.listen:focus-visible,
+  a.mnemonic.listen:hover, a.mnemonic.listen:focus-visible{
+    color:var(--accent-muted);
+    border-bottom-color:var(--orange);
+  }
+
+  .rep-item .mnemonic{
+    display:block;
+    color:#5a4c3f;
+  }
+
+  .rep-item .note{
+    display:block;
+    font-size:0.82rem;
+    color:#8a7a63;
+    margin-top:2px;
+  }
+
+  /* ---------- Footer ---------- */
+  footer{
+    background:var(--navy-deep);
+    color:rgba(241,231,208,0.6);
+    text-align:center;
+    padding:28px 24px;
+    font-size:0.85rem;
+  }
+  footer strong{ color:var(--orange-bright); font-weight:400; font-style:italic; font-family:var(--display); }
+
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <svg class="flourish" viewBox="0 0 180 24" aria-hidden="true">
+    <path d="M2,12 C40,2 60,22 90,12 C120,2 140,22 178,12"/>
+  </svg>
+  <h1>Music Memory</h1>
+  <p class="place">Elementary Program</p>
+  <p class="season">2026&ndash;2027 Season &nbsp;/&nbsp; Grades 2&ndash;5 Division</p>
+</header>
+
+<div class="lb-row" id="lbRow">
+  <div class="lb-block" id="liveLbBlock"></div>
+  <div class="about-block">
+    <h2>About the Program</h2>
+    <p>Music Memory helps you learn to recognize famous pieces of classical music just by listening &mdash; the composer, the name of the piece, and which part of it is playing. Students practice online, take a live listening test with their whole class, and can even see their best scores show up right here on this page!</p>
+  </div>
+  <div class="lb-block" id="rehearsalLbBlock"></div>
+</div>
+
+<nav class="sections" aria-label="Program pages">
+  <!-- Cards are rendered from PAGES below so URLs/copy live in one place -->
+</nav>
+
+<main class="repertoire">
+  <div class="repertoire-head">
+    <h2>This Year&rsquo;s Repertoire</h2>
+    <p>Ten works make up the district's 2026&ndash;2027 UIL A+ Music Memory list for Grades&nbsp;2&ndash;5.</p>
+  </div>
+  <div class="rep-grid" id="repGrid"><!-- rendered from REPERTOIRE below --></div>
+</main>
+
+<footer>
+  <strong>UIL A+ Music Memory</strong> &middot; 2026&ndash;2027
+</footer>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { initializeFirestore, doc, getDoc, getDocs, collection, query, orderBy, limit, where } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1buaseorV5ZMvicSbYrzx3tz7_tos_wQ",
+    authDomain: "music-memory-490d4.firebaseapp.com",
+    projectId: "music-memory-490d4",
+    storageBucket: "music-memory-490d4.firebasestorage.app",
+    messagingSenderId: "669104332511",
+    appId: "1:669104332511:web:6e15026013e67de445536a"
+  };
+  const fbApp = initializeApp(firebaseConfig);
+  const db = initializeFirestore(fbApp, { experimentalAutoDetectLongPolling: true });
+
+  /* ============================================
+     EDIT EACH SEASON
+     ============================================ */
+
+  // The five program pages this homepage links to.
+  const PAGES = [
+    {
+      title: "Getting to Know the Music",
+      desc: "Meet each composer and hear the sixteen selections before you start studying.",
+      url: "https://sites.google.com/saisd.org/santa-rita-music/music-memory/meet-the-music",
+      icon: "note"
+    },
+    {
+      title: "Practice Test",
+      desc: "Low-stakes listening practice to build familiarity ahead of the real test.",
+      url: "https://jlk521-ctrl.github.io/music-memory/rehearsal-room.html",
+      icon: "metronome",
+      newTab: true,
+      premiumNote: true
+    },
+    {
+      title: "Live Test",
+      desc: "The in-person, teacher-led listening test — join with the code from class.",
+      url: "https://sites.google.com/saisd.org/santa-rita-music/music-memory/music-memory-live-test",
+      icon: "curtain",
+      newTab: true
+    }
+  ];
+
+  // The 2026–2027 UIL A+ Grades 2-5 repertoire, in UIL's published order.
+  // Add a "youtube" URL to any item to make its title a link to that track.
+  const REPERTOIRE = [
+    { composer: "Beethoven", work: "F\u00fcr Elise", movement: "", note: "piano", youtube: "https://youtu.be/s71I_EWJk7I" },
+    { composer: "Mozart", work: "Eine kleine Nachtmusik", movement: "Movement 1", note: "", youtube: "https://youtu.be/fRrsD4RH9SY" },
+    { composer: "Verdi", work: "Aida", movement: "Triumphal March", note: "sung in Italian", youtube: "https://youtu.be/HqNa9Cpa3L8" },
+    { composer: "Saint-Sa\u00ebns", work: "Carnival of the Animals", movement: "Finale", note: "", youtube: "https://youtu.be/3SSQz_CZ8Jk" },
+    { composer: "Beach", work: "Four Sketches", movement: "In Autumn", note: "piano", youtube: "https://youtu.be/FlfqfsDasSM" },
+    { composer: "Haydn", work: "Symphony No. 88", movement: "Movement 4", note: "", youtube: "https://youtu.be/Qq1w8x7Qkmc" },
+    { composer: "Sousa", work: "Stars and Stripes Forever", movement: "", note: "band", youtube: "https://youtu.be/a-7XWhyvIpE" },
+    { composer: "Tchaikovsky", work: "The Nutcracker", movement: "Overture", note: "", youtube: "https://youtu.be/Mjbrf141mV8" },
+    { composer: "Bach", work: "Cantata No. 147", movement: "Jesu, Joy of Man\u2019s Desiring", note: "sung in German", youtube: "https://youtu.be/HSZg6sQ5J2k" },
+    { composer: "Vivaldi", work: "The Four Seasons", movement: "Spring, Movement 1", note: "", youtube: "https://youtu.be/e3nSvIiBNFo" }
+  ];
+
+  /* ============================================
+     LEADERBOARDS
+     ============================================ */
+  const SCHOOL_OPTIONS = [
+    "Belaire", "Bonham", "Bowie", "Bradford", "Crockett", "Fannin",
+    "Fort Concho", "Glenmore", "Goliad", "Holiman", "Lamar",
+    "McGill", "Reagan", "San Jacinto", "Santa Rita"
+  ];
+
+  // Shared state per block (keyed by block id)
+  const lbState = {
+    liveLbBlock: { mode: "official", scope: "district", campus: SCHOOL_OPTIONS[0], runScope: "alltime", challengeId: null, runId: null },
+    rehearsalLbBlock: { mode: "official", scope: "district", campus: SCHOOL_OPTIONS[0] }
+  };
+
+  let challengesCache = null; // [{id, name}], fetched once
+
+  async function fetchChallenges(){
+    if (challengesCache) return challengesCache;
+    try {
+      const snap = await getDocs(query(collection(db, "live_templates_public"), orderBy("createdAt", "desc")));
+      challengesCache = [];
+      snap.forEach(d => challengesCache.push({ id: d.id, name: d.data().name }));
+    } catch (err) {
+      challengesCache = [];
+    }
+    return challengesCache;
+  }
+
+  function rowsHtml(rows){
+    if (!rows || rows.length === 0) return `<p class="lb-empty">No scores yet.</p>`;
+    return `<ol class="lb-list">${rows.map((r, i) => `
+      <li>
+        <span class="rank-num">${i + 1}.</span>
+        <span><span class="sp-name">${r.firstName}</span><span class="sp-meta">${r.grade} \u00b7 ${r.school}</span></span>
+        <span class="sp-score">${r.score}</span>
+      </li>
+    `).join("")}</ol>`;
+  }
+
+  function filterByCampus(rows, state){
+    if (state.scope !== "campus") return rows;
+    return rows.filter(r => r.school === state.campus);
+  }
+
+  /* ---------- Rehearsal Leaderboard (simple: no Challenge/Run concept) ---------- */
+  async function fetchRehearsalRows(state){
+    const field = state.mode === "official" ? "officialBestScore" : "unofficialBestScore";
+    const snap = await getDocs(query(collection(db, "leaderboard_approved"), orderBy(field, "desc"), limit(30)));
+    const rows = [];
+    snap.forEach(d => { const r = d.data(); if (typeof r[field] === "number") rows.push({ firstName: r.firstName, grade: r.grade, school: r.school, score: r[field] }); });
+    return filterByCampus(rows, state);
+  }
+
+  /* ---------- Live Leaderboard (Challenge-scoped, All-Time or a specific Run) ---------- */
+  async function fetchLiveRows(state){
+    if (state.runScope === "select" && state.runId) {
+      const runSnap = await getDoc(doc(db, "live_runs", state.runId));
+      if (!runSnap.exists() || !runSnap.data().publishedRunScoreboard) return [];
+      return filterByCampus(runSnap.data().publishedRunScoreboard, state);
+    }
+    if (!state.challengeId) return [];
+    const field = state.mode === "official" ? "officialBestScore" : "unofficialBestScore";
+    const snap = await getDocs(query(collection(db, "live_templates", state.challengeId, "leaderboard"), orderBy(field, "desc"), limit(30)));
+    const rows = [];
+    snap.forEach(d => { const r = d.data(); if (typeof r[field] === "number") rows.push({ firstName: r.firstName, grade: r.grade, school: r.school, score: r[field] }); });
+    return filterByCampus(rows, state);
+  }
+
+  async function fetchRunsForChallenge(challengeId, mode){
+    try {
+      const snap = await getDocs(query(collection(db, "live_runs"), where("templateId", "==", challengeId), where("mode", "==", mode)));
+      const runs = [];
+      snap.forEach(d => runs.push({ id: d.id, label: d.data().label }));
+      return runs;
+    } catch (err) {
+      return [];
+    }
+  }
+
+  /* ---------- Shared block builder ---------- */
+  async function buildLbBlock(blockId, isLive){
+    const el = document.getElementById(blockId);
+    const state = lbState[blockId];
+    const challenges = isLive ? await fetchChallenges() : [];
+    if (isLive && !state.challengeId && challenges.length > 0) state.challengeId = challenges[0].id;
+
+    el.innerHTML = `
+      <button class="lb-expand-btn" data-expand="${blockId}" title="Expand">&#10530;</button>
+      <div class="lb-top-row">
+        <div class="lb-scope-toggle">
+          <button data-scope="district" class="${state.scope === 'district' ? 'active' : ''}">District</button>
+          <button data-scope="campus" class="${state.scope === 'campus' ? 'active' : ''}">Campus</button>
+        </div>
+        ${isLive ? `
+          <div class="lb-run-toggle">
+            <button data-runscope="alltime" class="${state.runScope === 'alltime' ? 'active' : ''}">All-Time</button>
+            <button data-runscope="select" class="${state.runScope === 'select' ? 'active' : ''}">Select Run</button>
+          </div>
+        ` : `<span></span>`}
+      </div>
+      <h3 style="text-align:center; font-family:var(--display); font-style:italic; color:var(--navy-text); margin:0 0 10px; font-size:1.1rem;">
+        ${isLive ? "LIVE Challenge Leaderboard" : "ONLINE Challenge Leaderboard"}
+      </h3>
+      <div class="lb-mode-tabs" style="margin-bottom:10px;">
+        <button data-mode="unofficial" class="${state.mode === 'unofficial' ? 'active' : ''}">Assisted</button>
+        <button data-mode="official" class="${state.mode === 'official' ? 'active' : ''}">Official</button>
+      </div>
+      <select class="lb-campus-select" style="display:${state.scope === 'campus' ? 'block' : 'none'};">
+        ${SCHOOL_OPTIONS.map(s => `<option value="${s}" ${state.campus === s ? "selected" : ""}>${s}</option>`).join("")}
+      </select>
+      ${isLive ? `
+        <select class="lb-challenge-select" style="display:${state.runScope === 'alltime' ? 'block' : 'none'};">
+          ${challenges.length === 0 ? `<option>No Challenges yet</option>` : challenges.map(c => `<option value="${c.id}" ${state.challengeId === c.id ? "selected" : ""}>${c.name}</option>`).join("")}
+        </select>
+        <select class="lb-run-select" style="display:${state.runScope === 'select' ? 'block' : 'none'};">
+          <option value="">Loading runs\u2026</option>
+        </select>
+      ` : ""}
+      <div class="lb-list-wrap"><p class="lb-empty">Loading\u2026</p></div>
+    `;
+
+    el.querySelectorAll("[data-scope]").forEach(btn => btn.addEventListener("click", () => { state.scope = btn.dataset.scope; buildLbBlock(blockId, isLive); }));
+    el.querySelectorAll("[data-mode]").forEach(btn => btn.addEventListener("click", () => { state.mode = btn.dataset.mode; refreshLbList(blockId, isLive); }));
+    const campusSelect = el.querySelector(".lb-campus-select");
+    if (campusSelect) campusSelect.addEventListener("change", (e) => { state.campus = e.target.value; refreshLbList(blockId, isLive); });
+
+    if (isLive) {
+      el.querySelectorAll("[data-runscope]").forEach(btn => btn.addEventListener("click", () => { state.runScope = btn.dataset.runscope; buildLbBlock(blockId, isLive); }));
+      const challengeSelect = el.querySelector(".lb-challenge-select");
+      if (challengeSelect) challengeSelect.addEventListener("change", (e) => { state.challengeId = e.target.value; refreshLbList(blockId, isLive); });
+      const runSelect = el.querySelector(".lb-run-select");
+      if (runSelect && state.runScope === "select" && state.challengeId) {
+        fetchRunsForChallenge(state.challengeId, state.mode).then(runs => {
+          runSelect.innerHTML = runs.length === 0
+            ? `<option value="">No runs yet for this Challenge</option>`
+            : runs.map(r => `<option value="${r.id}">${r.label}</option>`).join("");
+          state.runId = runs[0]?.id || null;
+          runSelect.addEventListener("change", (e) => { state.runId = e.target.value; refreshLbList(blockId, isLive); });
+          refreshLbList(blockId, isLive);
+        });
+      } else {
+        refreshLbList(blockId, isLive);
+      }
+    } else {
+      refreshLbList(blockId, isLive);
+    }
+
+    el.querySelector('[data-expand]').addEventListener("click", () => openLbOverlay(blockId, isLive));
+  }
+
+  async function refreshLbList(blockId, isLive){
+    const el = document.getElementById(blockId);
+    const listWrap = el.querySelector(".lb-list-wrap");
+    listWrap.innerHTML = `<p class="lb-empty">Loading\u2026</p>`;
+    const state = lbState[blockId];
+    const rows = isLive ? await fetchLiveRows(state) : await fetchRehearsalRows(state);
+    listWrap.innerHTML = rowsHtml(rows);
+  }
+
+  function openLbOverlay(blockId, isLive){
+    const overlay = document.createElement("div");
+    overlay.className = "lb-overlay";
+    overlay.innerHTML = `<button class="lb-close-btn">&times; Close</button><div class="lb-block" id="${blockId}-expanded"></div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector(".lb-close-btn").addEventListener("click", () => overlay.remove());
+    // Reuse the same state object so toggles stay in sync with the small version.
+    const expandedId = `${blockId}-expanded`;
+    lbState[expandedId] = lbState[blockId];
+    buildLbBlock(expandedId, isLive);
+  }
+
+  /* ============================================
+     RENDER — no need to edit below this line
+     ============================================ */
+
+  const ICONS = {
+    note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 17V4.5L19 3v12.5"/><circle cx="6.5" cy="17" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/></svg>',
+    metronome: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 21h8l-2.5-15h-3z"/><path d="M9 12l6-1"/><circle cx="12" cy="4.5" r="1.5"/></svg>',
+    clipboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="4" width="14" height="17" rx="1.5"/><path d="M9 3.5h6v2H9z"/><path d="M8.5 11.5l2 2 4-4.5M8.5 17h6"/></svg>',
+    curtain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 4h16"/><path d="M5 4c1 6 1 11-1.5 16M19 4c-1 6-1 11 1.5 16M9.5 4c.5 6 .5 11-.5 16M14.5 4c-.5 6-.5 11 .5 16"/></svg>',
+    globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.3 4 5.3 4 8.5s-1.4 6.2-4 8.5c-2.6-2.3-4-5.3-4-8.5s1.4-6.2 4-8.5z"/></svg>'
+  };
+
+  const nav = document.querySelector(".sections");
+  PAGES.forEach(p => {
+    const el = document.createElement(p.url ? "a" : "div");
+    el.className = "card" + (p.url ? "" : " pending");
+    if (p.url) {
+      el.href = p.url;
+      if (p.newTab) { el.target = "_blank"; el.rel = "noopener"; }
+    }
+    el.innerHTML = `
+      <span class="icon">${ICONS[p.icon] || ""}</span>
+      <h2>${p.title}</h2>
+      <p>${p.desc}</p>
+      <span class="status">${p.url ? "" : "Page coming soon"}</span>
+      ${p.premiumNote ? `<span class="premium-note">*YouTube Premium Required</span>` : ""}
+    `;
+    nav.appendChild(el);
+  });
+
+  const grid = document.getElementById("repGrid");
+  REPERTOIRE.forEach((r, i) => {
+    const row = document.createElement("div");
+    row.className = "rep-item";
+    const titleLine = `&mdash; ${r.work}`;
+    row.innerHTML = `
+      <span class="num">${i + 1}</span>
+      <span class="details">
+        ${r.youtube
+          ? `<a class="composer listen" href="${r.youtube}" target="_blank" rel="noopener">${r.composer}</a>`
+          : `<span class="composer">${r.composer}</span>`}
+        ${r.youtube
+          ? `<a class="work listen" href="${r.youtube}" target="_blank" rel="noopener">${titleLine}</a>`
+          : `<span class="work">${titleLine}</span>`}
+        ${r.movement
+          ? (r.youtube
+              ? `<a class="mnemonic listen" href="${r.youtube}" target="_blank" rel="noopener">${r.movement}</a>`
+              : `<span class="mnemonic">${r.movement}</span>`)
+          : ""}
+        ${r.note ? `<span class="note">${r.note}</span>` : ""}
+      </span>
+    `;
+    grid.appendChild(row);
+  });
+
+  // Leaderboards load last and independently — if either fails for any
+  // reason, it can never block the nav cards or repertoire list above.
+  try { buildLbBlock("liveLbBlock", true); } catch (err) { console.error("Live leaderboard failed to load:", err); }
+  try { buildLbBlock("rehearsalLbBlock", false); } catch (err) { console.error("Rehearsal leaderboard failed to load:", err); }
+</script>
+
+</body>
+</html>
