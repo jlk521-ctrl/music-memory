@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Admin Panel — Music Memory Leaderboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+
+  :root{
+    --navy:#122341;
+    --navy-deep:#0a1526;
+    --navy-text:#1d5099;
+    --parchment:#f2efe6;
+    --orange:#d97e2c;
+    --orange-bright:#f0b83e;
+    --ink:#1c1712;
+    --good:#2f6b4a;
+    --bad:#b3402f;
+    --display:'Fraunces', serif;
+    --body:'Libre Caslon Text', serif;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ color-scheme:light; }
+  body{
+    margin:0; background:var(--parchment); color:var(--ink);
+    font-family:var(--body); line-height:1.5;
+  }
+  button{ font-family:var(--body); cursor:pointer; }
+  input, select{ font-family:var(--body); }
+
+  .hero{
+    background:linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color:var(--parchment); padding:36px 24px; text-align:center;
+  }
+  .hero h1{ font-family:var(--display); font-style:italic; font-weight:600; margin:0 0 4px; font-size:1.8rem; }
+  .hero p{ margin:0; color:rgba(241,231,208,0.75); font-size:0.9rem; }
+
+  main{ max-width:900px; margin:0 auto; padding:32px 20px 60px; }
+
+  .card{
+    background:#fff; border:1px solid rgba(18,35,65,0.12); border-radius:6px;
+    padding:22px; margin-bottom:24px; box-shadow:0 14px 30px -18px rgba(0,0,0,0.25);
+  }
+
+  .login-card{ max-width:360px; margin:60px auto; text-align:center; }
+  .login-card input{ width:100%; padding:10px; margin-bottom:10px; border:1px solid rgba(18,35,65,0.25); border-radius:4px; }
+  .btn{ background:var(--navy); color:var(--parchment); border:none; padding:10px 22px; border-radius:30px; font-size:0.9rem; }
+  .btn:hover{ background:var(--navy-deep); }
+  .btn.danger{ background:var(--bad); }
+  .btn.small{ padding:6px 14px; font-size:0.82rem; }
+  .btn:disabled{ opacity:0.5; cursor:default; }
+
+  h2.section-title{ font-family:var(--display); font-style:italic; color:var(--navy-text); font-size:1.3rem; margin:0 0 14px; }
+
+  .row{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:12px 0; border-bottom:1px solid rgba(18,35,65,0.1);
+  }
+  .row:last-child{ border-bottom:none; }
+  .row .info{ flex-grow:1; min-width:180px; }
+  .row .info .name{ font-weight:700; }
+  .row .info .meta{ font-size:0.82rem; color:#8a7a63; }
+  .row .score{ font-family:var(--display); font-style:italic; color:var(--orange); font-size:1.1rem; min-width:60px; text-align:center; }
+  .row .actions{ display:flex; gap:8px; }
+
+  .edit-row input, .edit-row select{
+    padding:6px 8px; border:1px solid rgba(18,35,65,0.25); border-radius:4px; font-size:0.85rem;
+    width:100px;
+  }
+
+  .status-msg{ font-size:0.85rem; color:#8a7a63; margin-top:8px; }
+  .empty-msg{ font-size:0.9rem; color:#8a7a63; font-style:italic; }
+  #signoutBar{ display:flex; justify-content:flex-end; padding:12px 20px 0; max-width:900px; margin:0 auto; }
+
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>Admin Panel</h1>
+  <p>Music Memory Leaderboard — approvals, edits, deletes</p>
+</header>
+
+<div id="signoutBar"></div>
+<main id="app"></main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import { initializeFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, collection } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+  /* ============================================
+     Same Music Memory Firebase project as the other pages
+     ============================================ */
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1buaseorV5ZMvicSbYrzx3tz7_tos_wQ",
+    authDomain: "music-memory-490d4.firebaseapp.com",
+    projectId: "music-memory-490d4",
+    storageBucket: "music-memory-490d4.firebasestorage.app",
+    messagingSenderId: "669104332511",
+    appId: "1:669104332511:web:6e15026013e67de445536a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+  const auth = getAuth(app);
+  const googleProvider = new GoogleAuthProvider();
+
+  // Add every email that should be able to use this panel. Anyone signing
+  // in with a Google account NOT on this list still authenticates
+  // successfully (Google confirms who they are), but is blocked here from
+  // seeing anything, and blocked again by the Firestore rules from writing
+  // anything — two independent layers, not just this list.
+  const ADMIN_EMAILS = [
+    "jonathan.ochoa@saisd.org"
+  ];
+
+  const LB_APPROVED_COLLECTION = "leaderboard_approved";
+  const LB_PENDING_COLLECTION = "leaderboard_pending";
+
+  const appEl = document.getElementById("app");
+  const signoutBarEl = document.getElementById("signoutBar");
+
+  /* ============================================
+     AUTH
+     ============================================ */
+  onAuthStateChanged(auth, (user) => {
+    if (user && ADMIN_EMAILS.includes(user.email)) {
+      signoutBarEl.innerHTML = `<span style="font-size:0.85rem;color:#8a7a63;margin-right:10px;align-self:center;">Signed in as ${user.email}</span><button class="btn small" id="signOutBtn">Sign Out</button>`;
+      document.getElementById("signOutBtn").addEventListener("click", () => signOut(auth));
+      renderDashboard();
+    } else if (user) {
+      // Authenticated successfully (Google confirmed who they are) but not
+      // on the allowlist — sign them right back out and explain why.
+      signoutBarEl.innerHTML = "";
+      appEl.innerHTML = `
+        <div class="card login-card">
+          <h2 class="section-title">Not Authorized</h2>
+          <p class="status-msg">Signed in as ${user.email}, but this account isn't on the admin list for this panel.</p>
+        </div>
+      `;
+      signOut(auth);
+    } else {
+      signoutBarEl.innerHTML = "";
+      renderLogin();
+    }
+  });
+
+  function renderLogin(){
+    appEl.innerHTML = `
+      <div class="card login-card">
+        <h2 class="section-title">Admin Sign In</h2>
+        <p style="font-size:0.85rem;color:#8a7a63;margin-bottom:16px;">Sign in with the Google account you use for SAISD (or another account you've added to the admin list).</p>
+        <button class="btn" id="googleSignInBtn" style="width:100%;">Sign in with Google</button>
+        <p class="status-msg" id="loginStatus"></p>
+      </div>
+    `;
+    document.getElementById("googleSignInBtn").addEventListener("click", async () => {
+      const statusEl = document.getElementById("loginStatus");
+      statusEl.textContent = "Opening Google sign-in\u2026";
+      try {
+        await signInWithPopup(auth, googleProvider);
+      } catch (err) {
+        statusEl.textContent = "Sign-in failed: " + err.message;
+      }
+    });
+  }
+
+  /* ============================================
+     DASHBOARD
+     ============================================ */
+  async function renderDashboard(){
+    appEl.innerHTML = `
+      <div class="card" id="pendingCard">
+        <h2 class="section-title">Pending Approvals</h2>
+        <p class="empty-msg">Loading\u2026</p>
+      </div>
+      <div class="card" id="approvedCard">
+        <h2 class="section-title">Approved Students</h2>
+        <p class="empty-msg">Loading\u2026</p>
+      </div>
+    `;
+    await Promise.all([renderPending(), renderApproved()]);
+  }
+
+  function slugFor(firstName, grade, school){
+    const clean = s => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    return `${clean(firstName)}_${clean(grade)}_${clean(school)}`;
+  }
+
+  /* ---------- Pending queue ---------- */
+  async function renderPending(){
+    const container = document.getElementById("pendingCard");
+    let snap;
+    try {
+      snap = await getDocs(collection(db, LB_PENDING_COLLECTION));
+    } catch (err) {
+      container.innerHTML = `<h2 class="section-title">Pending Approvals</h2><p class="status-msg">Couldn't load: ${err.message}</p>`;
+      return;
+    }
+    const entries = [];
+    snap.forEach(d => entries.push({ id: d.id, ...d.data() }));
+
+    if (entries.length === 0) {
+      container.innerHTML = `<h2 class="section-title">Pending Approvals</h2><p class="empty-msg">Nothing waiting for approval right now.</p>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <h2 class="section-title">Pending Approvals (${entries.length})</h2>
+      ${entries.map(e => `
+        <div class="row" data-id="${e.id}">
+          <div class="info">
+            <div class="name">${e.firstName}</div>
+            <div class="meta">${e.grade} \u00b7 ${e.school} \u00b7 first submitted via ${e.mode || "?"} mode</div>
+          </div>
+          <div class="score">${e.score}</div>
+          <div class="actions">
+            <button class="btn small" data-action="approve" data-id="${e.id}">Approve</button>
+            <button class="btn small danger" data-action="reject" data-id="${e.id}">Reject</button>
+          </div>
+        </div>
+      `).join("")}
+      <p class="status-msg" id="pendingStatus"></p>
+    `;
+
+    container.querySelectorAll('[data-action="approve"]').forEach(btn => {
+      btn.addEventListener("click", () => approveEntry(entries.find(e => e.id === btn.dataset.id)));
+    });
+    container.querySelectorAll('[data-action="reject"]').forEach(btn => {
+      btn.addEventListener("click", () => rejectEntry(btn.dataset.id));
+    });
+  }
+
+  async function approveEntry(entry){
+    const statusEl = document.getElementById("pendingStatus");
+    statusEl.textContent = "Approving\u2026";
+    const slug = slugFor(entry.firstName, entry.grade, entry.school);
+    const scoreField = entry.mode === "official" ? "officialBestScore" : "unofficialBestScore";
+    const timeField = entry.mode === "official" ? "officialBestCompletionMs" : "unofficialBestCompletionMs";
+    try {
+      // Merge in case this identity already has an approved record for the
+      // OTHER mode — approval is shared, so this just adds the new field
+      // rather than overwriting an existing approved record.
+      await setDoc(doc(db, LB_APPROVED_COLLECTION, slug), {
+        firstName: entry.firstName, grade: entry.grade, school: entry.school,
+        [scoreField]: entry.score, [timeField]: entry.completionMs,
+        updatedAt: Date.now()
+      }, { merge: true });
+      await deleteDoc(doc(db, LB_PENDING_COLLECTION, entry.id));
+      renderDashboard();
+    } catch (err) {
+      statusEl.textContent = "Couldn't approve: " + err.message;
+    }
+  }
+
+  async function rejectEntry(id){
+    const statusEl = document.getElementById("pendingStatus");
+    statusEl.textContent = "Rejecting\u2026";
+    try {
+      await deleteDoc(doc(db, LB_PENDING_COLLECTION, id));
+      renderDashboard();
+    } catch (err) {
+      statusEl.textContent = "Couldn't reject: " + err.message;
+    }
+  }
+
+  /* ---------- Approved students: edit / delete ---------- */
+  async function renderApproved(){
+    const container = document.getElementById("approvedCard");
+    let snap;
+    try {
+      snap = await getDocs(collection(db, LB_APPROVED_COLLECTION));
+    } catch (err) {
+      container.innerHTML = `<h2 class="section-title">Approved Students</h2><p class="status-msg">Couldn't load: ${err.message}</p>`;
+      return;
+    }
+    const entries = [];
+    snap.forEach(d => entries.push({ id: d.id, ...d.data() }));
+    entries.sort((a, b) => (a.firstName || "").localeCompare(b.firstName || ""));
+
+    if (entries.length === 0) {
+      container.innerHTML = `<h2 class="section-title">Approved Students</h2><p class="empty-msg">No approved students yet.</p>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <h2 class="section-title">Approved Students (${entries.length})</h2>
+      ${entries.map(e => `
+        <div class="row edit-row" data-id="${e.id}">
+          <div class="info">
+            <input type="text" data-field="firstName" value="${e.firstName || ""}" style="width:120px;">
+            <input type="text" data-field="grade" value="${e.grade || ""}" style="width:90px;">
+            <input type="text" data-field="school" value="${e.school || ""}" style="width:130px;">
+          </div>
+          <div>
+            <label style="font-size:0.75rem;color:#8a7a63;">Official</label>
+            <input type="number" data-field="officialBestScore" value="${e.officialBestScore ?? ""}" style="width:70px;">
+          </div>
+          <div>
+            <label style="font-size:0.75rem;color:#8a7a63;">Unofficial</label>
+            <input type="number" data-field="unofficialBestScore" value="${e.unofficialBestScore ?? ""}" style="width:70px;">
+          </div>
+          <div class="actions">
+            <button class="btn small" data-action="save" data-id="${e.id}">Save</button>
+            <button class="btn small danger" data-action="delete" data-id="${e.id}">Delete</button>
+          </div>
+        </div>
+      `).join("")}
+      <p class="status-msg" id="approvedStatus"></p>
+    `;
+
+    container.querySelectorAll('[data-action="save"]').forEach(btn => {
+      btn.addEventListener("click", () => saveEntry(btn.dataset.id));
+    });
+    container.querySelectorAll('[data-action="delete"]').forEach(btn => {
+      btn.addEventListener("click", () => deleteEntry(btn.dataset.id));
+    });
+  }
+
+  async function saveEntry(id){
+    const statusEl = document.getElementById("approvedStatus");
+    const row = document.querySelector(`.edit-row[data-id="${id}"]`);
+    const getVal = (field) => row.querySelector(`[data-field="${field}"]`).value;
+    const officialVal = getVal("officialBestScore");
+    const unofficialVal = getVal("unofficialBestScore");
+    const data = {
+      firstName: getVal("firstName"),
+      grade: getVal("grade"),
+      school: getVal("school"),
+      updatedAt: Date.now()
+    };
+    if (officialVal !== "") data.officialBestScore = Number(officialVal);
+    if (unofficialVal !== "") data.unofficialBestScore = Number(unofficialVal);
+
+    statusEl.textContent = "Saving\u2026";
+    try {
+      await setDoc(doc(db, LB_APPROVED_COLLECTION, id), data, { merge: true });
+      statusEl.textContent = "Saved.";
+    } catch (err) {
+      statusEl.textContent = "Couldn't save: " + err.message;
+    }
+  }
+
+  async function deleteEntry(id){
+    if (!confirm("Delete this student's leaderboard entry entirely? This can't be undone.")) return;
+    const statusEl = document.getElementById("approvedStatus");
+    statusEl.textContent = "Deleting\u2026";
+    try {
+      await deleteDoc(doc(db, LB_APPROVED_COLLECTION, id));
+      renderApproved();
+    } catch (err) {
+      statusEl.textContent = "Couldn't delete: " + err.message;
+    }
+  }
+</script>
+
+</body>
+</html>
