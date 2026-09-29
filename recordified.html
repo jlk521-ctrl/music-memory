@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Recorder Fingering Player</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+<style>
+  :root{
+    --board:#000000;
+    --board-soft:#0a0a0a;
+    --board-line:#2e2e2e;
+    --chalk:#f5efe0;
+    --chalk-dim:#c9c2ab;
+    --wood:#c78a4a;
+    --wood-dark:#8a5a2b;
+    --hole-open:#000000;
+    --hole-closed:#2b1a10;
+    --accent:#e8a33d;
+    --accent-soft:#3a2f1c;
+    --error:#e2665a;
+    --thumb-color:#b5657a;
+    --left-color:#5f9488;
+    --right-color:#c99a3f;
+    --half-yellow:#e8c531;
+    --half-orange:#e07a2c;
+    --half-pink:#ff6fae;
+    --radius:18px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:#000000;
+    color:var(--chalk);
+    font-family:'Nunito',sans-serif;
+    min-height:100vh;
+    padding:20px 14px 60px;
+  }
+  h1{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:800;
+    font-size:clamp(28px,4vw,42px);
+    margin:0 0 4px;
+    text-align:center;
+    letter-spacing:0.5px;
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--chalk-dim);
+    font-weight:600;
+    margin-bottom:26px;
+    font-size:15px;
+  }
+  .wrap{max-width:100%;width:100%;margin:0 auto;}
+  .panel{
+    background:var(--board-soft);
+    border:1px solid var(--board-line);
+    border-radius:var(--radius);
+    padding:18px 20px;
+    margin-bottom:18px;
+  }
+  .panel h2{
+    font-family:'Baloo 2',sans-serif;
+    font-size:16px;
+    margin:0 0 10px;
+    color:var(--accent);
+    text-transform:uppercase;
+    letter-spacing:1.2px;
+  }
+  textarea{
+    width:100%;
+    min-height:110px;
+    background:#0d0d0d;
+    color:var(--chalk);
+    border:1px solid var(--board-line);
+    border-radius:12px;
+    padding:12px 14px;
+    font-family:'Nunito',monospace;
+    font-size:15px;
+    resize:vertical;
+    line-height:1.5;
+  }
+  .row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:12px;}
+  .field-label{font-size:13px;color:var(--chalk-dim);font-weight:700;}
+  select, button{
+    font-family:'Nunito',sans-serif;
+    font-weight:700;
+    border-radius:10px;
+    border:1px solid var(--board-line);
+    padding:9px 14px;
+    background:#0d0d0d;
+    color:var(--chalk);
+    cursor:pointer;
+    font-size:14px;
+  }
+  #songPicker{min-width:220px;}
+  button.primary{
+    background:var(--wood);
+    color:#241407;
+    border:none;
+  }
+  button.primary:hover{background:var(--accent);}
+  button:disabled{opacity:0.45;cursor:not-allowed;}
+  .error-msg{color:var(--error);font-size:13px;font-weight:700;margin-top:8px;}
+  .assumption{color:var(--chalk-dim);font-size:12.5px;margin-top:8px;font-style:italic;}
+
+  /* Timeline */
+  .timeline-wrap{
+    overflow:hidden;
+    background:#0d0d0d;
+    border-radius:14px;
+    border:1px solid var(--board-line);
+    padding:14px 0;
+    position:relative;
+  }
+  .timeline-track{
+    display:flex;
+    gap:8px;
+    padding:0 50vw 0 12px;
+    transition:transform 0.08s linear;
+    will-change:transform;
+  }
+  .note-block{
+    flex:0 0 auto;
+    min-width:52px;
+    height:64px;
+    border-radius:10px;
+    background:#111111;
+    border:2px solid var(--board-line);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:20px;
+    color:var(--chalk-dim);
+    cursor:pointer;
+    transition:background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+  }
+  .note-block .beats{font-size:10px;font-weight:700;color:var(--chalk-dim);margin-top:2px;}
+  .note-block.rest{font-style:italic;font-size:14px;}
+  .note-block.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#241407;
+    transform:scale(1.08);
+  }
+  .note-block.active .beats{color:#3a2a10;}
+  .playhead-line{
+    position:absolute;
+    left:50vw;
+    top:0;bottom:0;
+    width:2px;
+    background:var(--accent);
+    opacity:0.5;
+  }
+
+  /* Fingering diagram */
+  .diagram-area{display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .now-label{
+    font-family:'Baloo 2',sans-serif;
+    font-size:34px;
+    font-weight:800;
+    color:var(--accent);
+    min-height:44px;
+  }
+  .beat-count{color:var(--chalk-dim);font-size:14px;font-weight:700;margin-top:-6px;}
+  svg#recorder{width:100%;max-height:62vh;height:auto;object-fit:contain;display:block;margin:0 auto;}
+  .legend{display:flex;gap:18px;justify-content:center;margin-top:6px;flex-wrap:wrap;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--chalk-dim);}
+  .legend-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--hole-closed);}
+  .legend-dot.open{background:var(--hole-open);}
+  .legend-dot.closed{background:var(--hole-closed);}
+  .legend-dot.half{background:linear-gradient(to bottom, var(--thumb-color) 50%, var(--hole-open) 50%);border-color:var(--thumb-color);}
+
+  /* Standard notation (VexFlow) */
+  .vex-wrap{
+    overflow-x:auto;
+    overflow-y:hidden;
+    background:#0a0a0a;
+    border-radius:14px;
+    border:1px solid var(--board-line);
+    padding:10px 4px;
+  }
+  #vexContainer{display:inline-block;}
+  #vexContainer svg{display:block;}
+
+  /* Transport */
+  .transport{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;}
+  input[type=range]{accent-color:var(--wood);}
+  .speed-label{font-size:13px;color:var(--chalk-dim);font-weight:700;min-width:118px;text-align:right;}
+  label.check{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--chalk-dim);cursor:pointer;}
+  footer{text-align:center;color:var(--chalk-dim);font-size:12px;margin-top:10px;opacity:0.75;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎼 Recorder Fingering Player</h1>
+  <div class="subtitle">Type beats · note · octave — watch fingerings scroll in before each note</div>
+
+  <div class="panel">
+    <h2>Your Tune</h2>
+    <div class="row" style="margin-top:0;margin-bottom:12px;">
+      <span class="field-label">Load a song:</span>
+      <select id="songPicker">
+        <option value="">— choose a song —</option>
+      </select>
+    </div>
+    <textarea id="input" spellcheck="false">4/4
+114bpm
+1Ab5 0.5B5 0.5Db6 1Eb6 0.5R 0.25R 0.25Ab5 0.25R 0.25Ab5 0.5Ab5 0.5B5 0.5Db6 1Eb6 1Eb5 1Ab5 0.5B5 0.5Db6 1Eb6 0.5R 0.25R 0.25Ab5 0.25R 0.25Ab5 0.5Ab5 0.5B5 0.5Db6 1Eb6 1Eb5</textarea>
+    <div class="row">
+      <button class="primary" id="loadBtn">Load Tune</button>
+    </div>
+    <div class="error-msg" id="errorMsg" style="display:none;"></div>
+    <div class="assumption">Format: <code>[beats][Note][#/b][octave]</code> e.g. <code>2B5</code> = 2 beats on B5. Use <code>1R</code> or <code>1#R</code> for a rest. A fraction before the note gives a subdivision: <code>1/2G4</code> = eighth note, <code>1/3G4</code> = triplet, <code>1/4G4</code> = sixteenth. First line is the time signature (4/4, 3/4, 6/8, 2/2, etc.). Tempo line: <code>100bpm</code> (quarter=100), or <code>60 1.5pm</code> for a compound-meter marking like dotted-quarter=60 (great for 6/8) — the metronome and count-in click on whichever note value you set.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Timeline</h2>
+    <div class="timeline-wrap">
+      <div class="playhead-line"></div>
+      <div class="timeline-track" id="track"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Standard Notation</h2>
+    <div class="vex-wrap" id="vexWrap"><div id="vexContainer"></div></div>
+    <div class="error-msg" id="vexFallbackMsg" style="display:none;">Notation engine didn't load (needs an internet connection the first time) — the fingering diagram below still works fine on its own.</div>
+  </div>
+
+  <div class="panel diagram-area">
+    <div class="now-label" id="nowLabel">Press Play</div>
+    <div class="beat-count" id="beatCount">&nbsp;</div>
+    <svg id="recorder" viewBox="0 0 1600 640"></svg>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:var(--thumb-color);border-color:var(--thumb-color);"></span>Thumb</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--left-color);border-color:var(--left-color);"></span>Left hand</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--right-color);border-color:var(--right-color);"></span>Right hand</div>
+      <div class="legend-item"><span class="legend-dot half"></span>Half-hole (thumb, upper register)</div>
+    </div>
+    <div class="assumption">Bars slide in from the right toward each hole — filled means "close this finger," hollow means "lift it," half-filled means "pinch the thumb" — timed to arrive exactly when the note begins.</div>
+
+    <div class="transport">
+      <button class="primary" id="playBtn">▶ Play</button>
+      <button id="resetBtn">⟲ Reset</button>
+      <label class="check"><input type="checkbox" id="hearPitch" checked> Hear pitch</label>
+      <label class="check"><input type="checkbox" id="hearMetronome"> Hear metronome</label>
+      <span class="speed-label" id="speedLabel">Speed: 100%</span>
+      <input type="range" id="speedSlider" min="40" max="150" value="100">
+      <span class="speed-label" id="lookaheadLabel">Preview: 4.0s</span>
+      <input type="range" id="lookaheadSlider" min="15" max="80" value="40">
+    </div>
+  </div>
+  <footer>Built for classroom projection.</footer>
+</div>
+
+<script>
+/* ---------- Fingering data ---------- */
+/* Order: [Thumb, 1,2,3,4,5,6,7]  values: 1=closed, 0=open, 0.5=half */
+const FINGERING_CHART = {
+  'C5':  [1,1,1,1,1,1,1,1],
+  'C#5': [1,1,1,1,1,1,1,0.5],
+  'D5':  [1,1,1,1,1,1,1,0],
+  'D#5': [1,1,1,1,1,1,0.5,0],
+  'E5':  [1,1,1,1,1,1,0,0],
+  'F5':  [1,1,1,1,1,0,1,1],
+  'F#5': [1,1,1,1,0,1,1,0],
+  'G5':  [1,1,1,1,0,0,0,1],
+  'G#5': [1,1,1,0,1,1,1,0],
+  'A5':  [1,1,1,0,0,0,0,1],
+  'A#5': [1,1,0,1,0,0,0,1],
+  'B5':  [1,1,0,0,0,0,0,1],
+  'C6':  [1,0,1,0,0,0,0,1],
+  'C#6': [1,0,0,0,0,0,0,1],
+  'D6':  [0,0,1,0,0,0,0,1],
+  'D#6': [0.5,1,1,1,1,1,0.5,0],
+  'E6':  [0.5,1,1,1,1,1,0,0],
+  'F6':  [0.5,1,1,1,1,0,1,0],
+  'F#6': [0.5,1,1,1,0,1,0,0],
+  'G6':  [0.5,1,1,1,0,0,0,0],
+  'G#6': [0.5,1,1,0,0,0,0,1],
+  'A6':  [0.5,1,1,0,0,0,0,0],
+  'A#6': [0.5,1,1,0,0,1,1,0],
+  'B6':  [0.5,1,0,0,1,1,1,1],
+  'C7':  [0.5,1,0,0,0,1,1,0]
+};
+// Flats map to their enharmonic sharp/natural (recorder has one fingering per pitch, same octave)
+const FLAT_ENHARMONIC = {A:'G#', B:'A#', C:'B', D:'C#', E:'D#', F:'E', G:'F#'};
+const REST_PATTERN = [0,0,0,0,0,0,0,0];
+
+function getFingering(letter, accidental, octave){
+  let name = letter;
+  if(accidental === '#') name = letter + '#';
+  if(accidental === 'b') name = FLAT_ENHARMONIC[letter];
+  return FINGERING_CHART[`${name}${octave}`] || null;
+}
+
+/* ---------- MIDI / frequency ---------- */
+const SEMITONES = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function noteToFreq(letter, accidental, octave){
+  let n = SEMITONES[letter];
+  if(accidental === '#') n += 1;
+  if(accidental === 'b') n -= 1;
+  const midi = (octave+1)*12 + n;
+  return 440 * Math.pow(2, (midi-69)/12);
+}
+
+/* ---------- Parsing ---------- */
+function parseDurationValue(str){
+  if(str.indexOf('/') !== -1){
+    const parts = str.split('/');
+    return parseInt(parts[0],10) / parseInt(parts[1],10);
+  }
+  return parseFloat(str);
+}
+
+function parseInput(text){
+  const errors = [];
+
+  // Tempo line: either the classic "100bpm" (quarter=100), or an MM-style marking
+  // "<bpm> <noteValue>pm" e.g. "60 1.5pm" meaning dotted-quarter=60 — useful for compound
+  // meters like 6/8 where the natural pulse is a dotted quarter, not a plain quarter.
+  let clickNoteValue = 1;
+  let statedBpm = null;
+  let mmMatch = text.match(/(\d+(?:\.\d+)?)\s+(\d+\/\d+|\d+(?:\.\d+)?)\s*pm\b/i);
+  let bpmMatch = text.match(/(\d+(?:\.\d+)?)\s*bpm/i);
+  let matchedTempoStr = null;
+  if(mmMatch){
+    statedBpm = parseFloat(mmMatch[1]);
+    clickNoteValue = parseDurationValue(mmMatch[2]);
+    matchedTempoStr = mmMatch[0];
+  } else if(bpmMatch){
+    statedBpm = parseFloat(bpmMatch[1]);
+    clickNoteValue = 1;
+    matchedTempoStr = bpmMatch[0];
+  }
+  let bpm = statedBpm !== null ? statedBpm * clickNoteValue : null; // internal bpm is always in quarter-note-equivalents
+  if(bpm === null){
+    errors.push('No tempo found — defaulting to 100bpm.');
+    bpm = 100;
+    clickNoteValue = 1;
+  }
+
+  // time signature: a standalone fraction like 4/4, 3/4, 6/8 — must be its own token,
+  // not glued to a note letter (that's how "1/2G4" durations are told apart from "4/4").
+  let timeSigMatch = text.match(/(?:^|\s)(\d{1,2})\s*\/\s*(\d{1,2})(?=\s|$)/);
+  let timeSigNum = timeSigMatch ? parseInt(timeSigMatch[1],10) : 4;
+  let timeSigDen = timeSigMatch ? parseInt(timeSigMatch[2],10) : 4;
+  if(!timeSigMatch){
+    errors.push('No time signature found — defaulting to 4/4.');
+  }
+
+  let body = matchedTempoStr ? text.replace(matchedTempoStr, ' ') : text;
+  if(timeSigMatch) body = body.replace(timeSigMatch[0], ' ');
+
+  // duration is either a plain number (2, 1, 0.5 = quarter-note-equivalents)
+  // or a fraction (1/2 eighth, 1/3 triplet, 1/4 sixteenth), immediately followed by the note/rest.
+  const tokenRegex = /(\d+\/\d+|\d+(?:\.\d+)?)(?:([A-Ga-g])([#b]?)(\d+)|#?([Rr])(?![A-Za-z]))/g;
+  const notes = [];
+  let m;
+  while((m = tokenRegex.exec(body)) !== null){
+    const beats = parseDurationValue(m[1]);
+    if(m[2]){
+      const letter = m[2].toUpperCase();
+      const accidental = m[3] || '';
+      const octave = parseInt(m[4],10);
+      notes.push({beats, letter, accidental, octave, rest:false});
+    } else {
+      notes.push({beats, rest:true});
+    }
+  }
+  if(notes.length === 0) errors.push('No valid notes found. Check the format, e.g. 1B5 1A5 1G5');
+
+  return {bpm, clickNoteValue, timeSigNum, timeSigDen, notes, errors};
+}
+
+/* ---------- App state ---------- */
+let state = {
+  bpm:100, clickNoteValue:1, notes:[], total:0, timeSigNum:4, timeSigDen:4,
+  playing:false, startTime:0, elapsedAtPause:0,
+  speed:1, lookahead:4, audioCtx:null, activeOsc:null, lastIndex:-1, lastBeat:-1, countInTimers:[]
+};
+
+const recorderSvg = document.getElementById('recorder');
+const nowLabel = document.getElementById('nowLabel');
+const beatCount = document.getElementById('beatCount');
+const track = document.getElementById('track');
+const errorMsg = document.getElementById('errorMsg');
+
+function getVar(name){
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+/* ---------- Layout constants for the diagram ---------- */
+const RECEPTOR_X = 170;   // vertical "now" line — where holes live
+const LANE_RIGHT = 1580;  // right edge of scrolling lanes
+const LABEL_Y = 46, LABEL_H = 34; // scrolling note-name lane, above the thumb line
+const THUMB_Y = 128;
+const HOLE_GAP = 52;      // spacing within a hand group
+const GROUP_GAP = 30;     // extra spacing between thumb/left-hand and left-hand/right-hand groups
+const GROUP_COLOR = {thumb:'var(--thumb-color)', left:'var(--left-color)', right:'var(--right-color)'};
+function rowGroup(idx){ return idx===0 ? 'thumb' : (idx<=3 ? 'left' : 'right'); }
+
+function bracePath(xBase, y0, y1, w){
+  const ym = (y0+y1)/2;
+  return `M ${xBase},${y0}
+    Q ${xBase+w},${y0} ${xBase+w},${y0+w}
+    L ${xBase+w},${ym-w}
+    Q ${xBase+w},${ym} ${xBase+2*w},${ym}
+    Q ${xBase+w},${ym} ${xBase+w},${ym+w}
+    L ${xBase+w},${y1-w}
+    Q ${xBase+w},${y1} ${xBase},${y1}`;
+}
+
+/* Letter name only (no octave digit): octave <=5 = CAPITAL, octave 6 = CAPITAL + ', octave 7+ = CAPITAL + '' */
+function noteLabelText(n){
+  if(n.rest) return '';
+  let label = n.letter.toUpperCase() + (n.accidental||'');
+  if(n.octave === 6) label += "'";
+  else if(n.octave >= 7) label += "''";
+  return label;
+}
+
+/* Rhythmic name for a beats value (quarter-note-equivalents), e.g. "Quarter Note", "Dotted Half Rest" */
+const RHYTHM_NAMES = {
+  4: 'Whole', 3: 'Dotted Half', 2: 'Half', 1.5: 'Dotted Quarter', 1: 'Quarter',
+  0.75: 'Dotted Eighth', 0.5: 'Eighth', [1/3]: 'Triplet Eighth', 0.25: 'Sixteenth'
+};
+function rhythmicName(beats, isRest){
+  const key = Object.keys(RHYTHM_NAMES).map(Number).find(k => Math.abs(k-beats) < 0.01);
+  const base = key !== undefined ? RHYTHM_NAMES[key] : `${beats}-Beat`;
+  return base + (isRest ? ' Rest' : ' Note');
+}
+
+/* ---------- Recompute per-note patterns & timing ---------- */
+function recomputeNotes(){
+  const secPerBeat = 60/state.bpm;
+  let t = 0;
+  state.notes.forEach(n=>{
+    n.startTime = t;
+    n.endTime = t + n.beats*secPerBeat;
+    n.pattern = n.rest ? REST_PATTERN : (getFingering(n.letter, n.accidental, n.octave) || REST_PATTERN);
+    t = n.endTime;
+  });
+  state.total = t;
+}
+
+/* ---------- Draw the diagram: holes + scrolling lanes, at a given elapsed time ---------- */
+function drawDiagram(elapsed){
+  const woodgrad = `
+    <defs>
+      <linearGradient id="woodgrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="${getVar('--wood-dark')}"/>
+        <stop offset="50%" stop-color="${getVar('--wood')}"/>
+        <stop offset="100%" stop-color="${getVar('--wood-dark')}"/>
+      </linearGradient>
+    </defs>`;
+  // hole Y positions: thumb alone up top, then a gap, left hand (1,2,3), a gap, right hand (4,5,6,7)
+  const holeYs = [];
+  holeYs.push(THUMB_Y + HOLE_GAP + GROUP_GAP); // hole 1
+  holeYs.push(holeYs[0] + HOLE_GAP);           // hole 2
+  holeYs.push(holeYs[1] + HOLE_GAP);           // hole 3
+  holeYs.push(holeYs[2] + HOLE_GAP + GROUP_GAP); // hole 4
+  holeYs.push(holeYs[3] + HOLE_GAP);           // hole 5
+  holeYs.push(holeYs[4] + HOLE_GAP);           // hole 6
+  holeYs.push(holeYs[5] + HOLE_GAP);           // hole 7
+
+  const bodyTop = 20, bodyBottom = holeYs[6] + 50;
+  let svg = woodgrad;
+  svg += `<path d="M${RECEPTOR_X-15},${bodyTop} h30 q6,0 6,10 v14 h-42 v-14 q0,-10 6,-10 Z" fill="url(#woodgrad)"/>`;
+  svg += `<rect x="${RECEPTOR_X-30}" y="${bodyTop+24}" width="60" height="${bodyBottom-bodyTop-24}" rx="16" fill="url(#woodgrad)"/>`;
+
+  const laneTop = LABEL_Y - LABEL_H/2 - 6, laneBottom = holeYs[6] + 26;
+
+  // beat gridlines across the lane area
+  const secPerBeat = 60/state.bpm;
+  const pxPerSec = (LANE_RIGHT - RECEPTOR_X) / state.lookahead;
+  const firstBeat = Math.ceil(elapsed/secPerBeat)*secPerBeat;
+  svg += `<g stroke="${getVar('--board-line')}" stroke-width="1" opacity="0.7">`;
+  for(let bt = firstBeat; bt < elapsed + state.lookahead; bt += secPerBeat){
+    const x = RECEPTOR_X + (bt-elapsed)*pxPerSec;
+    if(x <= LANE_RIGHT) svg += `<line x1="${x.toFixed(1)}" y1="${laneTop}" x2="${x.toFixed(1)}" y2="${laneBottom}"/>`;
+  }
+  svg += `</g>`;
+
+  // "now" line
+  svg += `<line x1="${RECEPTOR_X}" y1="${laneTop-6}" x2="${RECEPTOR_X}" y2="${laneBottom+6}" stroke="${getVar('--accent')}" stroke-width="2" opacity="0.8"/>`;
+
+  // find notes relevant to the visible window
+  const visibleNotes = state.notes.filter(n => n.endTime > elapsed - 0.001 && n.startTime < elapsed + state.lookahead);
+
+  // scrolling note-name lane, directly above the thumb line
+  svg += `<rect x="${RECEPTOR_X+2}" y="${LABEL_Y-LABEL_H/2}" width="${LANE_RIGHT-RECEPTOR_X-2}" height="${LABEL_H}" rx="${LABEL_H/2}" fill="#0d0d0d" opacity="0.5"/>`;
+  visibleNotes.forEach(n=>{
+    if(n.rest) return;
+    const segStart = Math.max(n.startTime, elapsed);
+    const segEnd = Math.min(n.endTime, elapsed + state.lookahead);
+    if(segEnd <= segStart) return;
+    const xNear = RECEPTOR_X + (segStart-elapsed)*pxPerSec;
+    const xFar = RECEPTOR_X + (segEnd-elapsed)*pxPerSec;
+    const midX = (xNear+xFar)/2;
+    const isCurrent = elapsed >= n.startTime - 0.0001 && elapsed < n.endTime - 0.0001;
+    const label = noteLabelText(n);
+    const fill = isCurrent ? getVar('--accent') : getVar('--chalk-dim');
+    const fsize = isCurrent ? 23 : 17;
+    svg += `<text x="${midX.toFixed(1)}" y="${LABEL_Y+6}" text-anchor="middle" font-family="'Baloo 2'" font-weight="800" font-size="${fsize}" fill="${fill}">${label}</text>`;
+  });
+  svg += `<text x="${RECEPTOR_X-20}" y="${LABEL_Y+5}" text-anchor="end" fill="${getVar('--chalk-dim')}" font-size="11" font-family="Nunito" font-weight="700" opacity="0.8">Note</text>`;
+
+  // draw each of the 8 lanes (thumb + 1..7), with bars per note segment, then the hole itself at RECEPTOR_X
+  const rowDefs = [{idx:0, y:THUMB_Y, h:22}];
+  for(let i=0;i<7;i++) rowDefs.push({idx:i+1, y:holeYs[i], h:26});
+
+  const BLOCK_PAD = 4; // horizontal gap between adjacent fingering blocks (each side)
+  rowDefs.forEach(row=>{
+    const rowTop = row.y - row.h/2, rowH = row.h;
+    const groupColor = GROUP_COLOR[rowGroup(row.idx)];
+    // lane background
+    svg += `<rect x="${RECEPTOR_X+2}" y="${rowTop}" width="${LANE_RIGHT-RECEPTOR_X-2}" height="${rowH}" rx="${rowH/2}" fill="#0d0d0d" opacity="0.5"/>`;
+    visibleNotes.forEach(n=>{
+      const segStart = Math.max(n.startTime, elapsed);
+      const segEnd = Math.min(n.endTime, elapsed + state.lookahead);
+      if(segEnd <= segStart) return;
+      const xNearRaw = RECEPTOR_X + (segStart-elapsed)*pxPerSec;
+      const xFarRaw = RECEPTOR_X + (segEnd-elapsed)*pxPerSec;
+      const xNear = xNearRaw + BLOCK_PAD;
+      const w = Math.max((xFarRaw - BLOCK_PAD) - xNear, 2);
+      const val = n.pattern[row.idx];
+      let fill, opacity, stroke;
+      if(val === 1){ fill = groupColor; opacity = 1; stroke = 'none'; }
+      else if(val === 0.5){
+        if(row.idx === 0 || row.idx === 6 || row.idx === 7){
+          let topColor, bottomColor;
+          if(row.idx === 0){ topColor = '#000000'; bottomColor = getVar('--half-pink'); }
+          else if(row.idx === 6){ topColor = getVar('--half-orange'); bottomColor = '#000000'; }
+          else { topColor = getVar('--half-yellow'); bottomColor = '#000000'; }
+          const halfH = rowH/2;
+          svg += `<rect x="${xNear.toFixed(1)}" y="${rowTop}" width="${w.toFixed(1)}" height="${halfH}" rx="${halfH/2}" fill="${topColor}"/>`;
+          svg += `<rect x="${xNear.toFixed(1)}" y="${(rowTop+halfH).toFixed(1)}" width="${w.toFixed(1)}" height="${halfH}" rx="${halfH/2}" fill="${bottomColor}"/>`;
+          return;
+        }
+        fill = groupColor; opacity = 0.55; stroke = 'none';
+      }
+      else { fill = 'transparent'; opacity = 1; stroke = groupColor; }
+      svg += `<rect x="${xNear.toFixed(1)}" y="${rowTop}" width="${w.toFixed(1)}" height="${rowH}" rx="${rowH/2}" fill="${fill}" opacity="${opacity}" stroke="${stroke}" stroke-width="${stroke!=='none'?1.5:0}" stroke-opacity="0.6"/>`;
+    });
+  });
+
+  // now draw the actual holes on top, at RECEPTOR_X (current sounding state)
+  let currentPattern = REST_PATTERN;
+  const activeNote = state.notes.find(n => elapsed >= n.startTime - 0.0001 && elapsed < n.endTime - 0.0001);
+  if(activeNote) currentPattern = activeNote.pattern;
+
+  svg += holeMarkup(RECEPTOR_X, THUMB_Y, currentPattern[0], true, GROUP_COLOR.thumb, 0);
+  svg += `<text x="${RECEPTOR_X-20}" y="${THUMB_Y+5}" text-anchor="end" fill="${getVar('--chalk-dim')}" font-size="13" font-family="Nunito" font-weight="700">Thumb</text>`;
+  for(let i=0;i<7;i++){
+    svg += holeMarkup(RECEPTOR_X, holeYs[i], currentPattern[i+1], false, GROUP_COLOR[rowGroup(i+1)], i+1);
+    svg += `<text x="${RECEPTOR_X-20}" y="${holeYs[i]+5}" text-anchor="end" fill="${getVar('--chalk-dim')}" font-size="12" font-family="Nunito" font-weight="700">${i+1}</text>`;
+  }
+
+  // curly braces + vertical group labels for left-hand (1-3) and right-hand (4-7) holes
+  const leftTop = holeYs[0]-16, leftBottom = holeYs[2]+16, leftMid = (leftTop+leftBottom)/2;
+  const rightTop = holeYs[3]-16, rightBottom = holeYs[6]+16, rightMid = (rightTop+rightBottom)/2;
+  const braceX = RECEPTOR_X-95, braceW = 10;
+  svg += `<path d="${bracePath(braceX, leftTop, leftBottom, braceW)}" fill="none" stroke="${GROUP_COLOR.left}" stroke-width="2.5" stroke-linecap="round"/>`;
+  svg += `<path d="${bracePath(braceX, rightTop, rightBottom, braceW)}" fill="none" stroke="${GROUP_COLOR.right}" stroke-width="2.5" stroke-linecap="round"/>`;
+  svg += `<text x="0" y="0" transform="translate(${braceX-30},${leftMid}) rotate(-90)" text-anchor="middle" font-family="'Baloo 2'" font-size="14" font-weight="700" letter-spacing="2" fill="${GROUP_COLOR.left}">LEFT-HAND</text>`;
+  svg += `<text x="0" y="0" transform="translate(${braceX-30},${rightMid}) rotate(-90)" text-anchor="middle" font-family="'Baloo 2'" font-size="14" font-weight="700" letter-spacing="2" fill="${GROUP_COLOR.right}">RIGHT-HAND</text>`;
+
+  recorderSvg.innerHTML = svg;
+}
+
+function holeMarkup(cx, cy, val, isThumb, groupColor, holeIndex){
+  const r = isThumb ? 14 : 16;
+  const openFill = getVar('--hole-open');
+  if(val === 1){
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${groupColor}" stroke="${groupColor}" stroke-width="3"/>`;
+  } else if(val === 0.5){
+    let topColor = groupColor, bottomColor = openFill;
+    if(holeIndex === 0){ topColor = '#000000'; bottomColor = getVar('--half-pink'); }
+    else if(holeIndex === 6){ topColor = getVar('--half-orange'); bottomColor = '#000000'; }
+    else if(holeIndex === 7){ topColor = getVar('--half-yellow'); bottomColor = '#000000'; }
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${bottomColor}" stroke="${groupColor}" stroke-width="3"/>
+            <path d="M ${cx-r},${cy} A ${r},${r} 0 0 1 ${cx+r},${cy} Z" fill="${topColor}"/>`;
+  } else {
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${openFill}" stroke="${groupColor}" stroke-width="3"/>`;
+  }
+}
+
+/* ---------- Build timeline UI ---------- */
+function buildTimeline(){
+  track.innerHTML = '';
+  state.notes.forEach((n, i) => {
+    const div = document.createElement('div');
+    div.className = 'note-block' + (n.rest ? ' rest' : '');
+    div.dataset.idx = i;
+    const label = n.rest ? 'rest' : (n.letter + (n.accidental||''));
+    div.innerHTML = `<span>${label}</span><span class="beats">${n.beats}b</span>`;
+    div.addEventListener('click', ()=> seekTo(n.startTime));
+    track.appendChild(div);
+  });
+}
+
+/* ---------- Seek: click a timeline block to jump the fingering guide + notation to that point ---------- */
+function seekTo(targetElapsed){
+  if(state.notes.length === 0) return;
+  const elapsed = Math.max(0, Math.min(targetElapsed, state.total - 0.0005));
+  cancelCountIn();
+  stopTone();
+
+  if(state.playing){
+    state.startTime = performance.now() - (elapsed/state.speed)*1000;
+  } else {
+    state.elapsedAtPause = elapsed;
+  }
+
+  let idx = 0;
+  for(let i=state.notes.length-1;i>=0;i--){
+    if(elapsed >= state.notes[i].startTime){ idx = i; break; }
+  }
+  state.lastIndex = idx;
+  const secPerBeat = 60/state.bpm;
+  state.lastBeat = Math.floor(elapsed/secPerBeat) - 1;
+
+  const n = state.notes[idx];
+  if(n.rest){
+    nowLabel.textContent = 'Rest';
+  } else {
+    nowLabel.textContent = n.letter + (n.accidental||'') + (n.octave>=6 ? ' (high)' : '');
+  }
+  beatCount.textContent = rhythmicName(n.beats, n.rest);
+
+  document.querySelectorAll('.note-block').forEach(b=>b.classList.remove('active'));
+  const block = track.querySelector(`[data-idx="${idx}"]`);
+  if(block){
+    block.classList.add('active');
+    const offset = block.offsetLeft + block.offsetWidth/2;
+    track.style.transform = `translateX(${-(offset)}px)`;
+  }
+
+  drawDiagram(elapsed);
+  renderVexNotation(idx);
+}
+
+/* ---------- Standard notation via VexFlow (falls back quietly if the library didn't load) ---------- */
+let vexState = { available:false, entries:[] };
+
+function beatsToVexDuration(beats){
+  const table = {4:'w', 3:'hd', 2:'h', 1.5:'qd', 1:'q', 0.75:'8d', 0.5:'8', [1/3]:'8', 0.25:'16'};
+  const key = Object.keys(table).map(Number).find(k => Math.abs(k-beats) < 0.01);
+  if(key !== undefined) return table[key];
+  const closest = Object.keys(table).map(Number).sort((a,b)=>Math.abs(a-beats)-Math.abs(b-beats))[0];
+  return table[closest];
+}
+
+function renderVexNotation(activeIdx){
+  const container = document.getElementById('vexContainer');
+  const fallbackMsg = document.getElementById('vexFallbackMsg');
+  container.innerHTML = '';
+  vexState.entries = [];
+
+  if(typeof Vex === 'undefined' || !Vex.Flow || state.notes.length === 0){
+    vexState.available = false;
+    if(typeof Vex === 'undefined' || !Vex.Flow) fallbackMsg.style.display = 'block';
+    return;
+  }
+
+  try{
+    const VF = Vex.Flow;
+    const MEASURE_BEATS = state.timeSigNum * (4/state.timeSigDen); // in quarter-note-equivalents
+    const TIME_SIG_STR = `${state.timeSigNum}/${state.timeSigDen}`;
+    const MEASURE_WIDTH = 250;
+    const ACCIDENTAL_PAD = 20; // extra px per accidental in a measure, so sharps/flats don't crowd their neighbors
+    const STAVE_HEIGHT = 110;
+
+    const measures = [];
+    let cur = [], curBeats = 0;
+    state.notes.forEach(n=>{
+      cur.push(n);
+      curBeats += n.beats;
+      if(curBeats >= MEASURE_BEATS - 0.001){ measures.push(cur); cur = []; curBeats = 0; }
+    });
+    if(cur.length) measures.push(cur);
+
+    const measureWidths = measures.map((measureNotes, mi)=>{
+      const accCount = measureNotes.filter(n=>!n.rest && n.accidental).length;
+      const base = mi === 0 ? MEASURE_WIDTH + 40 : MEASURE_WIDTH;
+      return base + accCount*ACCIDENTAL_PAD;
+    });
+    const totalWidth = Math.max(measureWidths.reduce((a,b)=>a+b,0) + 20, 320);
+    const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+    renderer.resize(totalWidth, STAVE_HEIGHT);
+    const context = renderer.getContext();
+    context.setFillStyle(getVar('--chalk'));
+    context.setStrokeStyle(getVar('--chalk'));
+
+    let x = 10, globalIdx = 0;
+    measures.forEach((measureNotes, mi)=>{
+      const w = measureWidths[mi];
+      const stave = new VF.Stave(x, 12, w);
+      if(mi === 0){ stave.addClef('treble').addTimeSignature(TIME_SIG_STR); }
+      stave.setContext(context).draw();
+
+      const vfNotes = measureNotes.map(n=>{
+        const myIdx = globalIdx++;
+        const dur = beatsToVexDuration(n.beats) + (n.rest ? 'r' : '');
+        // Our tool's octave convention (low register=5, upper=6+) runs one octave above
+        // VexFlow's strict scientific pitch (where B/4 is the staff's middle line), so shift by -1.
+        const keys = n.rest ? ['b/4'] : [`${n.letter.toLowerCase()}${n.accidental||''}/${n.octave-1}`];
+        const note = new VF.StaveNote({ keys, duration: dur, clef:'treble' });
+        if(!n.rest && n.accidental){
+          note.addModifier(new VF.Accidental(n.accidental === '#' ? '#' : 'b'), 0);
+        }
+        const isDotted = [1.5, 3, 0.75].some(d => Math.abs(d - n.beats) < 0.01);
+        if(isDotted){
+          VF.Dot.buildAndAttach([note], { all: true });
+        }
+        const isCurrent = myIdx === activeIdx;
+        const color = isCurrent ? getVar('--accent') : getVar('--chalk');
+        note.setStyle({ fillStyle: color, strokeStyle: color });
+        vexState.entries.push({ note, idx: myIdx });
+        return { note, beats: n.beats, rest: n.rest };
+      });
+
+      // detect runs of 3 consecutive triplet-eighths (beats ~ 1/3) and bracket them
+      const tuplets = [];
+      for(let i=0;i<vfNotes.length-2;i++){
+        const trio = vfNotes.slice(i,i+3);
+        if(trio.every(t => !t.rest && Math.abs(t.beats - 1/3) < 0.01)){
+          tuplets.push(new VF.Tuplet(trio.map(t=>t.note)));
+          i += 2;
+        }
+      }
+
+      const noteObjs = vfNotes.map(v=>v.note);
+      const voice = new VF.Voice({ num_beats: MEASURE_BEATS, beat_value: 4 });
+      voice.setStrict(false);
+      voice.addTickables(noteObjs);
+      const formatWidth = stave.getNoteEndX() - stave.getNoteStartX() - 10;
+      new VF.Formatter().joinVoices([voice]).format([voice], formatWidth);
+      voice.draw(context, stave);
+      tuplets.forEach(t => t.setContext(context).draw());
+      x += w;
+    });
+
+    vexState.available = true;
+    fallbackMsg.style.display = 'none';
+    scrollVexToIndex(activeIdx);
+
+    const noteEls = container.querySelectorAll('.vf-stavenote');
+    noteEls.forEach((el, i)=>{
+      const entry = vexState.entries[i];
+      if(!entry) return;
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', ()=> seekTo(state.notes[entry.idx].startTime));
+    });
+  } catch(e){
+    console.warn('VexFlow render failed, showing fallback message.', e);
+    vexState.available = false;
+    container.innerHTML = '';
+    fallbackMsg.style.display = 'block';
+  }
+}
+
+function scrollVexToIndex(idx){
+  if(idx < 0) return;
+  const entry = vexState.entries.find(e => e.idx === idx);
+  const wrap = document.getElementById('vexWrap');
+  if(!entry || !wrap) return;
+  try{
+    const noteX = entry.note.getAbsoluteX();
+    wrap.scrollLeft = Math.max(noteX - wrap.clientWidth/2, 0);
+  } catch(e){ /* ignore */ }
+}
+
+/* ---------- Song library (from Santa Rita's recorder lessons page) ---------- */
+const songDefinitions = {
+    'bag-recorder': {
+        title: "BAG",
+        clef: 'treble8va',
+        key: { type: '#', count: 1 },
+        time: { top: 4, bottom: 4 },
+        tempo: 60,
+        phrases: [
+            "Title='Note B' q-B5-B q-R q-B5-B q-R | q-B5-B q-B5-B q-B5-B q-R",
+            "Title='Note A' q-A5-A q-R q-A5-A q-R | q-A5-A q-A5-A q-A5-A q-R",
+            "Title='Note G' q-G5-G q-R q-G5-G q-R | q-G5-G q-G5-G q-G5-G q-R"
+        ]
+    },
+    'hot-cross-buns-recorder': {
+        title: "Hot Cross Buns",
+        clef: 'treble8va',
+        key: { type: '#', count: 1 },
+        time: { top: 4, bottom: 4 },
+        tempo: 120,
+        phrases: [
+            "Title='Phrase 1' h-B5-Hot h-A5-Cross | h-G5-Buns h-R",
+            "Title='Phrase 2' h-B5-Hot h-A5-Cross | h-G5-Buns h-R",
+            "Title='Phrase 3' q-G5-One q-G5-a q-G5-pen q-G5-ny | q-A5-Two q-A5-a q-A5-pen q-A5-ny",
+            "Title='Phrase 4' h-B5-Hot h-A5-Cross | h-G5-Buns h-R"
+        ]
+    },
+    'gently-sleep-recorder': {
+        title: "Gently Sleep",
+        clef: 'treble8va',
+        key: { type: '#', count: 1 },
+        time: { top: 4, bottom: 4 },
+        tempo: 80,
+        phrases: [
+            "Title='Phrase 1' q-G5-Gent_ q-A5-ly h-B5-sleep, | q-A5-my q-G5-sweet h-A5-child.",
+            "Title='Phrase 2' q-G5-Gent_ q-A5-ly h-B5-sleep, | q-A5-with q-B5-that h-G5-smile.",
+            "Title='Phrase 3' q-G5-Gent_ q-A5-ly h-B5-sleep, | q-A5-lit_ q-G5-tle h-A5-one.",
+            "Title='Phrase 4' q-G5-Gent_ q-A5-ly h-B5-sleep, | q-A5-day q-B5-is h-G5-done."
+        ]
+    },
+    'merrily-we-roll-along-recorder': {
+        title: "Merrily We Roll Along",
+        clef: 'treble8va',
+        key: { type: '#', count: 1 },
+        time: { top: 4, bottom: 4 },
+        tempo: 80,
+        phrases: [
+            "Title='Phrase 1' q-B5-Mer_ q-A5-ri_ q-G5-ly q-A5-we | q-B5-roll q-B5-a_ h-B5-long,",
+            "Title='Phrase 2' q-A5-roll q-A5-a_ h-A5-long, | q-B5-roll q-B5-a_ h-B5-long.",
+            "Title='Phrase 3' q-B5-Mer_ q-A5-ri_ q-G5-ly q-A5-we | q-B5-roll q-B5-a_ h-B5-long,",
+            "Title='Phrase 4' q-A5-o'er q-A5-the q-B5-deep q-A5-blue | h-G5-sea. h-R"
+        ]
+    },
+    'its-raining-recorder': {
+        title: "It's Raining",
+        clef: 'treble8va',
+        key: { type: 'b', count: 0 },
+        time: { top: 4, bottom: 4 },
+        tempo: 90,
+        phrases: [
+            "Title='Verse 1' q-G5-It's | h-G5-rain_ q-E5-ing, q-A5-it's | h-G5-pour_ q-E5-ing,",
+            "Title='Verse 2' q-E5-the | h-G5-old q-E5-man q-A5-is | h-G5-snor_ h-E5-ing.",
+            "Title='Verse 3' q-G5-Went q-G5-to q-E5-bed e-E5-and e-A5-he | q-G5-bumped q-G5-his q-E5-head",
+            "Title='Verse 4' e-E5-and e-A5-he | e-G5-could_ e-G5-n't q-G5-get q-E5-up e-E5-in e-A5-the | h-G5-morn_ q-E5-ing."
+        ]
+    },
+    'old-macdonald-had-a-farm-recorder': {
+        title: "Old MacDonald Had a Farm",
+        clef: 'treble8va',
+        key: { type: '#', count: 1 },
+        time: { top: 4, bottom: 4 },
+        tempo: 100,
+        phrases: [
+            "Title='Verse 1' q-G5-Old q-G5-Mac_ q-G5-Don_ q-D5-ald | q-E5-had q-E5-a h-D5-farm.",
+            "Title='Verse 2' q-B5-E q-B5-I q-A5-E q-A5-I | h-G5-O. q-R",
+            "Title='Verse 3' q-D5-And | q-G5-on q-G5-that q-G5-farm q-D5-he | q-E5-had q-E5-some h-D5-chicks.",
+            "Title='Verse 4' q-B5-E q-B5-I q-A5-E q-A5-I | h-G5-O. q-R",
+            "Title='Verse 5' e-D5-With e-D5-a | q-G5-chick q-G5-chick q-G5-here. e-D5-And e-D5-a | q-G5-chick q-G5-chick h-G5-there.",
+            "Title='Verse 6' e-G5-Here e-G5-a q-G5-chick, e-G5-there e-G5-a q-G5-chick. | e-G5-Ev'_ e-G5-ry_ e-G5-where e-G5-a q-G5-chick q-G5-chick.",
+            "Title='Verse 7' q-G5-Old q-G5-Mac_ q-G5-Don_ q-D5-ald | q-E5-had q-E5-a h-D5-farm.",
+            "Title='Verse 8' q-B5-E q-B5-I q-A5-E q-A5-I | h-G5-O. q-R"
+        ]
+    },
+    'when-the-saints-go-marching-in-recorder': {
+        title: "When The Saints Go Marching In",
+        clef: 'treble8va',
+        key: { type: '#', count: 1 },
+        time: { top: 4, bottom: 4 },
+        tempo: 100,
+        phrases: [
+            "Title='Verse 1' q-G5-Oh, q-B5-when q-C6-the | w-D6-saints_ | q-D6-",
+            "Title='Verse 2' q-G5-go q-B5-march_ q-C6-ing | w-D6-in,_ | q-D6-",
+            "Title='Verse 3' q-G5-oh, q-B5-when q-C6-the | h-D6-saints h-B5-go | h-G5-march_",
+            "Title='Verse 4' h-B5-ing | w-A5-in._ | q-A5-",
+            "Title='Verse 5' h-B5-Oh, q-A5-I | h.-G5-want q-G5-to | h-B5-be",
+            "Title='Verse 6' q-D6-in q-D6-that | q-D6-num_ h.-C6-ber,_ | h-C6-",
+            "Title='Verse 7' q-B5-when q-C6-the | h-D6-saints h-B5-go | h-G5-march_",
+            "Title='Verse 8' h-A5-ing | w-G5-in._ | q-G5-"
+        ]
+    },
+    'twinkle-twinkle-recorder': {
+        title: "Twinkle, Twinkle",
+        clef: 'treble8va',
+        key: { type: 'b', count: 0 },
+        time: { top: 4, bottom: 4 },
+        tempo: 100,
+        phrases: [
+            "Title='Verse 1' q-C5-Twin q-C5-kle, q-G5-twin q-G5-kle | q-A5-lit q-A5-tle h-G5-star.",
+            "Title='Verse 2' q-F5-How q-F5-I q-E5-won q-E5-der | q-D5-what q-D5-you h-C5-are.",
+            "Title='Verse 3' q-G5-Up q-G5-a q-F5-bove q-F5-the | q-E5-world q-E5-so h-D5-high",
+            "Title='Verse 4' q-G5-Like q-G5-a q-F5-dia q-F5-mond | q-E5-in q-E5-the h-D5-sky",
+            "Title='Verse 5' q-C5-Twin q-C5-kle, q-G5-twin q-G5-kle | q-A5-lit q-A5-tle h-G5-star.",
+            "Title='Verse 6' q-F5-How q-F5-I q-E5-won q-E5-der | q-D5-what q-D5-you h-C5-are."
+        ]
+    },
+    'amazing-grace-recorder': {
+        title: "Amazing Grace",
+        clef: 'treble8va',
+        key: { type: '#', count: 1 },
+        time: { top: 3, bottom: 4 },
+        tempo: 100,
+        phrases: [
+            "Title='Verse 1' q-D5-A_ | h-G5-maz_ e-B5-ing_ e-G5- | h-B5-grace,",
+            "Title='Verse 2' q-A5-how | h-G5-sweet q-E5-the | h-D5-sound,",
+            "Title='Verse 3' q-D5-that | h-G5-saved e-B5-a_ e-G5- | h-B5-wretch",
+            "Title='Verse 4' q-A5-like | h.-D6-me._ | h-D6-",
+            "Title='Verse 5' q-B5-I | q.-D6-once_ e-B5- e-D6-was_ e-B5- | h-G5-lost,",
+            "Title='Verse 6' q-D5-but | q.-E5-now_ e-G5- e-G5-am_ e-E5- | h-D5-found,",
+            "Title='Verse 7' q-D5-was | h-G5-blind, e-B5-but_ e-G5- | h-B5-now",
+            "Title='Verse 8' q-A5-I | h.-G5-see_ | h-G5-"
+        ]
+    },
+    'ode-to-joy-recorder': {
+        title: "Ode To Joy",
+        clef: 'treble8va',
+        key: { type: '#', count: 1 },
+        time: { top: 4, bottom: 4 },
+        tempo: 100,
+        phrases: [
+            "Title='Verse 1' q-B5- q-B5- q-C6- q-D6- | q-D6- q-C6- q-B5- q-A5-",
+            "Title='Verse 2' q-G5- q-G5- q-A5- q-B5- | q.-B5- e-A5- h-A5",
+            "Title='Verse 3' q-B5- q-B5- q-C6- q-D6- | q-D6- q-C6- q-B5- q-A5-",
+            "Title='Verse 4' q-G5- q-G5- q-A5- q-B5- | q.-A5- e-G5- h-G5",
+            "Title='Verse 5' q-A5- q-A5- q-B5- q-G5- | q-A5- e-B5- e-C6- q-B5- q-G5-",
+            "Title='Verse 6' q-A5- e-B5- e-C6- q-B5- q-A5- | q-G5- q-A5- h-D5-",
+            "Title='Verse 7' q-B5- q-B5- q-C6- q-D6- | q-D6- q-C6- q-B5- q-A5-",
+            "Title='Verse 8' q-G5- q-G5- q-A5- q-B5- | q.-A5- e-G5- h-G5"
+        ]
+    }
+};
+
+const DURATION_LETTER_BEATS = { w:4, h:2, q:1, e:0.5 };
+
+function songToTuneText(song){
+    const timeSig = `${song.time.top}/${song.time.bottom}`;
+    const bpmLine = `${song.tempo}bpm`;
+    const noteTokens = [];
+    const tokenPattern = /^([a-z]+\.?)-([A-G][#b]?\d|R)(?:-.*)?$/i;
+
+    song.phrases.forEach(phrase=>{
+        const cleaned = phrase.replace(/Title='[^']*'/g,' ').replace(/\|/g,' ');
+        cleaned.trim().split(/\s+/).filter(Boolean).forEach(tok=>{
+            const m = tok.match(tokenPattern);
+            if(!m) return;
+            let durLetter = m[1].toLowerCase();
+            const dotted = durLetter.endsWith('.');
+            if(dotted) durLetter = durLetter.slice(0,-1);
+            let beats = DURATION_LETTER_BEATS[durLetter];
+            if(beats === undefined) return;
+            if(dotted) beats *= 1.5;
+            const notePart = m[2];
+            noteTokens.push(notePart.toUpperCase() === 'R' ? `${beats}R` : `${beats}${notePart}`);
+        });
+    });
+
+    return `${timeSig}\n${bpmLine}\n${noteTokens.join(' ')}`;
+}
+
+function populateSongPicker(){
+    const picker = document.getElementById('songPicker');
+    Object.keys(songDefinitions).forEach(key=>{
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = songDefinitions[key].title;
+        picker.appendChild(opt);
+    });
+    picker.addEventListener('change', ()=>{
+        if(!picker.value) return;
+        document.getElementById('input').value = songToTuneText(songDefinitions[picker.value]);
+        loadTune();
+    });
+}
+populateSongPicker();
+
+/* ---------- Load / parse ---------- */
+document.getElementById('loadBtn').addEventListener('click', loadTune);
+function loadTune(){
+  stopPlayback();
+  const text = document.getElementById('input').value;
+  const parsed = parseInput(text);
+  if(parsed.errors.length){
+    errorMsg.style.display = 'block';
+    errorMsg.textContent = parsed.errors.join(' ');
+  } else {
+    errorMsg.style.display = 'none';
+  }
+  state.bpm = parsed.bpm;
+  state.clickNoteValue = parsed.clickNoteValue;
+  state.timeSigNum = parsed.timeSigNum;
+  state.timeSigDen = parsed.timeSigDen;
+  state.notes = parsed.notes;
+  recomputeNotes();
+  state.lastIndex = -1;
+  buildTimeline();
+  nowLabel.textContent = 'Press Play';
+  beatCount.innerHTML = '&nbsp;';
+  drawDiagram(0);
+  renderVexNotation(-1);
+}
+
+
+/* ---------- Playback ---------- */
+const playBtn = document.getElementById('playBtn');
+const resetBtn = document.getElementById('resetBtn');
+const speedSlider = document.getElementById('speedSlider');
+const speedLabel = document.getElementById('speedLabel');
+const lookaheadSlider = document.getElementById('lookaheadSlider');
+const lookaheadLabel = document.getElementById('lookaheadLabel');
+const hearPitch = document.getElementById('hearPitch');
+const hearMetronome = document.getElementById('hearMetronome');
+
+speedSlider.addEventListener('input', ()=>{
+  state.speed = speedSlider.value/100;
+  speedLabel.textContent = 'Speed: ' + speedSlider.value + '%';
+});
+lookaheadSlider.addEventListener('input', ()=>{
+  state.lookahead = lookaheadSlider.value/10;
+  lookaheadLabel.textContent = 'Preview: ' + state.lookahead.toFixed(1) + 's';
+  if(!state.playing) drawDiagram(state.elapsedAtPause);
+});
+
+playBtn.addEventListener('click', ()=>{
+  if(state.notes.length === 0) loadTune();
+  if(state.notes.length === 0) return;
+  state.playing ? pausePlayback() : startWithCountIn();
+});
+resetBtn.addEventListener('click', stopPlayback);
+document.addEventListener('keydown', (e)=>{
+  if(e.code === 'Space' && document.activeElement.tagName !== 'TEXTAREA'){
+    e.preventDefault();
+    playBtn.click();
+  }
+});
+
+function startWithCountIn(){
+  if(!state.audioCtx) state.audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  state.audioCtx.resume();
+  cancelCountIn();
+  playBtn.disabled = true;
+  playBtn.textContent = 'Get ready…';
+  const secPerBeat = ((60/state.bpm) * state.clickNoteValue) / state.speed;
+  const counts = [4,3,2,1];
+  counts.forEach((num, i)=>{
+    const id = setTimeout(()=>{
+      playClick(i === 0);
+      nowLabel.textContent = String(num);
+      beatCount.textContent = 'Count-in';
+    }, i*secPerBeat*1000);
+    state.countInTimers.push(id);
+  });
+  const finalId = setTimeout(()=>{
+    playBtn.disabled = false;
+    startPlayback();
+  }, counts.length*secPerBeat*1000);
+  state.countInTimers.push(finalId);
+}
+function cancelCountIn(){
+  state.countInTimers.forEach(id=>clearTimeout(id));
+  state.countInTimers = [];
+  playBtn.disabled = false;
+}
+
+function startPlayback(){
+  if(!state.audioCtx) state.audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  state.audioCtx.resume();
+  state.playing = true;
+  state.lastBeat = -1;
+  playBtn.textContent = '⏸ Pause';
+  state.startTime = performance.now() - state.elapsedAtPause*1000;
+  requestAnimationFrame(tick);
+}
+function pausePlayback(){
+  state.playing = false;
+  playBtn.textContent = '▶ Play';
+  state.elapsedAtPause = (performance.now() - state.startTime)/1000 * state.speed;
+  stopTone();
+}
+function stopPlayback(){
+  cancelCountIn();
+  state.playing = false;
+  state.elapsedAtPause = 0;
+  state.lastIndex = -1;
+  state.lastBeat = -1;
+  playBtn.textContent = '▶ Play';
+  stopTone();
+  nowLabel.textContent = 'Press Play';
+  beatCount.innerHTML = '&nbsp;';
+  drawDiagram(0);
+  renderVexNotation(-1);
+  track.style.transform = 'translateX(0px)';
+  document.querySelectorAll('.note-block').forEach(b=>b.classList.remove('active'));
+}
+
+function tick(now){
+  if(!state.playing) return;
+  let elapsed = (now - state.startTime)/1000 * state.speed;
+  if(elapsed >= state.total){
+    stopPlayback();
+    return;
+  }
+  if(hearMetronome.checked){
+    const secPerClick = (60/state.bpm) * state.clickNoteValue;
+    const clickIdx = Math.floor(elapsed/secPerClick + 0.0001);
+    if(clickIdx !== state.lastBeat){
+      state.lastBeat = clickIdx;
+      const measureBeats = state.timeSigNum * (4/state.timeSigDen);
+      const clicksPerMeasure = Math.max(Math.round(measureBeats/state.clickNoteValue), 1);
+      const accent = (clickIdx % clicksPerMeasure) === 0;
+      playClick(accent);
+    }
+  }
+  let idx = 0;
+  for(let i=state.notes.length-1;i>=0;i--){
+    if(elapsed >= state.notes[i].startTime){ idx = i; break; }
+  }
+  if(idx !== state.lastIndex){
+    updateLabelAndAudio(idx);
+    state.lastIndex = idx;
+  }
+  drawDiagram(elapsed);
+  requestAnimationFrame(tick);
+}
+
+function updateLabelAndAudio(idx){
+  const n = state.notes[idx];
+  document.querySelectorAll('.note-block').forEach(b=>b.classList.remove('active'));
+  const block = track.querySelector(`[data-idx="${idx}"]`);
+  if(block){
+    block.classList.add('active');
+    const offset = block.offsetLeft + block.offsetWidth/2;
+    track.style.transform = `translateX(${-(offset)}px)`;
+  }
+  if(n.rest){
+    nowLabel.textContent = 'Rest';
+    beatCount.textContent = rhythmicName(n.beats, true);
+    renderVexNotation(idx);
+    return;
+  }
+  const label = n.letter + (n.accidental||'') + (n.octave>=6 ? ' (high)' : '');
+  nowLabel.textContent = label;
+  beatCount.textContent = rhythmicName(n.beats, false);
+  if(hearPitch.checked){
+    playTone(noteToFreq(n.letter, n.accidental, n.octave), (n.endTime-n.startTime) / state.speed);
+  } else {
+    stopTone();
+  }
+  renderVexNotation(idx);
+}
+
+function playTone(freq, duration){
+  stopTone();
+  const ctx = state.audioCtx;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+  gain.gain.setValueAtTime(0.18, ctx.currentTime + Math.max(duration-0.05,0.02));
+  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + duration + 0.02);
+  state.activeOsc = {osc, gain};
+}
+function stopTone(){
+  if(state.activeOsc){
+    try{ state.activeOsc.osc.stop(); }catch(e){}
+    state.activeOsc = null;
+  }
+}
+
+function playClick(accent){
+  const ctx = state.audioCtx;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'square';
+  osc.frequency.value = accent ? 1400 : 900;
+  const t0 = ctx.currentTime;
+  gain.gain.setValueAtTime(accent ? 0.22 : 0.14, t0);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + 0.06);
+}
+
+/* ---------- Init ---------- */
+loadTune();
+</script>
+</body>
+</html>
